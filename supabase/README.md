@@ -6,7 +6,12 @@ Ten folder zawiera wersjonowany schemat bazy (migracje SQL) oraz dane startowe.
 - `migrations/0001_init.sql` — tabele `disciplines`, `profiles`, `training_sessions`,
   funkcje/triggery (auto-profil, `updated_at`/`version`).
 - `migrations/0002_policies.sql` — Row Level Security (RLS).
+- `migrations/0003_techniques.sql` — słownik technik (`techniques`,
+  `technique_aliases` z generowaną kolumną `normalized`, `technique_relations`),
+  funkcja `dsw_normalize`, pg_trgm, RLS. (Etap 1)
 - `seed.sql` — dyscypliny startowe.
+- `seed_techniques.sql` — startowy słownik technik + aliasy + relacje. (Etap 1)
+- `setup.sql` — wszystko z Etapu 0 w jednym pliku (wygodne na świeży projekt).
 
 ## Jak zastosować schemat
 

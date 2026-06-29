@@ -84,6 +84,12 @@ export default function Home() {
               </Link>
             </Card>
             <Button title="+ Dodaj trening" onPress={() => router.push('/new')} />
+            <Link
+              href="/techniques"
+              style={{ color: t.primary, fontWeight: '600', textAlign: 'center' }}
+            >
+              Biblioteka technik →
+            </Link>
             <H2>Treningi ({sessions.length})</H2>
           </View>
         }

@@ -154,6 +154,131 @@ export interface Database {
           },
         ];
       };
+      techniques: {
+        Row: {
+          id: string;
+          discipline_id: string;
+          name_pl: string;
+          name_en: string;
+          slug: string;
+          category: string;
+          position: string | null;
+          gi_context: string;
+          description: string | null;
+          is_official: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          discipline_id: string;
+          name_pl: string;
+          name_en: string;
+          slug: string;
+          category: string;
+          position?: string | null;
+          gi_context?: string;
+          description?: string | null;
+          is_official?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          discipline_id?: string;
+          name_pl?: string;
+          name_en?: string;
+          slug?: string;
+          category?: string;
+          position?: string | null;
+          gi_context?: string;
+          description?: string | null;
+          is_official?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'techniques_discipline_id_fkey';
+            columns: ['discipline_id'];
+            referencedRelation: 'disciplines';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      technique_aliases: {
+        Row: {
+          id: string;
+          technique_id: string;
+          alias: string;
+          lang: string;
+          // kolumna generowana w bazie (dsw_normalize) — tylko do odczytu
+          normalized: string;
+          source: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          technique_id: string;
+          alias: string;
+          lang?: string;
+          source?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          technique_id?: string;
+          alias?: string;
+          lang?: string;
+          source?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'technique_aliases_technique_id_fkey';
+            columns: ['technique_id'];
+            referencedRelation: 'techniques';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      technique_relations: {
+        Row: {
+          id: string;
+          from_id: string;
+          to_id: string;
+          relation: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          from_id: string;
+          to_id: string;
+          relation: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          from_id?: string;
+          to_id?: string;
+          relation?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'technique_relations_from_id_fkey';
+            columns: ['from_id'];
+            referencedRelation: 'techniques';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'technique_relations_to_id_fkey';
+            columns: ['to_id'];
+            referencedRelation: 'techniques';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;
