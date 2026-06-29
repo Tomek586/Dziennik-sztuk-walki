@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Expo / React Native wymagają płaskiego układu zależności (jak npm/yarn).
+# W pnpm 10+ to ustawienie czytane jest stąd, nie z .npmrc.
+nodeLinker: hoisted
+allowBuilds:
+  esbuild: true
+onlyBuiltDependencies:
+  - esbuild

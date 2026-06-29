@@ -1,0 +1,40 @@
+# Zależności
+node_modules/
+.pnpm-store/
+
+# Build / cache
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Expo / React Native
+.expo/
+.expo-shared/
+apps/app/web-build/
+apps/app/ios/
+apps/app/android/
+*.orig.*
+
+# Środowisko i sekrety
+.env
+.env.*
+!.env.example
+
+# Supabase (lokalny)
+supabase/.branches/
+supabase/.temp/
+
+# Logi / system
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

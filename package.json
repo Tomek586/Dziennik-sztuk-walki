@@ -1,0 +1,25 @@
+{
+  "name": "dziennik-sztuk-walki",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "app": "pnpm --filter @dsw/app",
+    "app:web": "pnpm --filter @dsw/app web",
+    "db:types": "supabase gen types typescript --local > packages/api-types/src/database.types.ts"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "turbo": "^2.3.3",
+    "typescript": "^6.0.3"
+  }
+}
