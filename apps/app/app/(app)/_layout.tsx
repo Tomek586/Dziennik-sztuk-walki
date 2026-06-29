@@ -19,6 +19,7 @@ export default function AppLayout() {
     >
       <Stack.Screen name="index" options={{ title: 'Dziennik' }} />
       <Stack.Screen name="new" options={{ title: 'Nowy trening', presentation: 'modal' }} />
+      <Stack.Screen name="record" options={{ title: 'Notatka głosowa', presentation: 'modal' }} />
       <Stack.Screen name="sync" options={{ title: 'Synchronizacja' }} />
       <Stack.Screen name="techniques/index" options={{ title: 'Biblioteka technik' }} />
       <Stack.Screen name="techniques/[id]" options={{ title: 'Technika' }} />

@@ -105,6 +105,11 @@ export default function Home() {
               </P>
             </Card>
             <Button title="+ Dodaj trening" onPress={() => router.push('/new')} />
+            <Button
+              title="● Nagraj notatkę głosową"
+              variant="ghost"
+              onPress={() => router.push('/record')}
+            />
             <Link
               href="/techniques"
               style={{ color: t.primary, fontWeight: '600', textAlign: 'center' }}
