@@ -6,6 +6,7 @@ import { Button, Card, H1, H2, Muted, P } from '@/components/ui';
 import { ENV } from '@/lib/env';
 import { useTheme } from '@/theme';
 import {
+  listAllSessionTechniques,
   listSessions,
   softDeleteSession,
   type SessionRow,
@@ -15,6 +16,7 @@ import {
   syncDisciplines,
   type Discipline,
 } from '@/features/disciplines/repository';
+import { deriveProgress } from '@/features/progress/derive';
 import { getSyncState, synchronize } from '@/offline/sync';
 
 export default function Home() {
@@ -24,16 +26,28 @@ export default function Home() {
   const [disciplines, setDisciplines] = useState<Record<string, Discipline>>({});
   const [pending, setPending] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  const [techCount, setTechCount] = useState<Record<string, number>>({});
+  const [progressStat, setProgressStat] = useState({ practiced: 0, working: 0 });
 
   const refresh = useCallback(async () => {
-    const [list, state, ds] = await Promise.all([
+    const [list, state, ds, sts, progress] = await Promise.all([
       listSessions(),
       getSyncState(),
       listDisciplines(),
+      listAllSessionTechniques(),
+      deriveProgress(),
     ]);
     setSessions(list);
     setPending(state.pending);
     setDisciplines(Object.fromEntries(ds.map((d) => [d.id, d])));
+
+    const counts: Record<string, number> = {};
+    for (const st of sts) counts[st.session_id] = (counts[st.session_id] ?? 0) + 1;
+    setTechCount(counts);
+
+    let working = 0;
+    for (const p of progress.values()) if (p.level >= 2) working += 1;
+    setProgressStat({ practiced: progress.size, working });
   }, []);
 
   const doSync = useCallback(async () => {
@@ -83,6 +97,13 @@ export default function Home() {
                 Diagnostyka i synchronizacja →
               </Link>
             </Card>
+            <Card>
+              <Muted>Postęp technik</Muted>
+              <P>
+                {progressStat.practiced} ćwiczonych technik · {progressStat.working} działa
+                (poziom 2+)
+              </P>
+            </Card>
             <Button title="+ Dodaj trening" onPress={() => router.push('/new')} />
             <Link
               href="/techniques"
@@ -117,6 +138,7 @@ export default function Home() {
                 .filter(Boolean)
                 .join(' · ') || 'bez szczegółów'}
             </Muted>
+            {techCount[item.id] ? <Muted>{techCount[item.id]} technik</Muted> : null}
             <View style={{ alignSelf: 'flex-start' }}>
               <Button
                 title="Usuń"

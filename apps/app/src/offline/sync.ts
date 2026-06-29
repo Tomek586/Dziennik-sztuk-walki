@@ -1,6 +1,5 @@
 import type { SyncState } from '@dsw/core';
 import { INITIAL_SYNC_STATE } from '@dsw/core';
-import type { Tables, TablesInsert, TablesUpdate } from '@dsw/api-types';
 import { supabase } from '@/lib/supabase';
 import { nowIso } from '@/lib/id';
 import * as collection from './collection';
@@ -8,14 +7,26 @@ import { listOutbox, markError, pendingCount, removeEntries } from './outbox';
 import { keys, readJson, writeJson } from './local-db';
 
 /**
- * Silnik synchronizacji offline-first dla Etapu 0.
+ * Silnik synchronizacji offline-first.
  * - push: wysyła kolejkę zmian (outbox) do Supabase (idempotentnie: upsert po id),
  * - pull: pobiera zmiany serwera od ostatniego `updated_at` i scala lokalnie.
- * Strategia konfliktów: Last-Write-Wins po `updated_at` (patrz docs/10-offline-sync.md).
- * W Etapie 0 synchronizujemy jedną encję — `training_sessions`.
+ * Strategia konfliktów: Last-Write-Wins po `updated_at` (docs/10-offline-sync.md).
  */
-type SyncedTable = 'training_sessions';
-const SYNCED_TABLES: readonly SyncedTable[] = ['training_sessions'];
+const SYNCED_TABLES = ['training_sessions', 'session_techniques'] as const;
+
+// supabase-js słabo wspiera dynamiczne nazwy tabel — w silniku sync świadomie
+// rezygnujemy z typowania zapytań (kontrakty pilnują typowane repozytoria).
+const db = supabase as unknown as {
+  from: (table: string) => {
+    upsert: (v: unknown, o?: { onConflict?: string }) => Promise<{ error: { message: string } | null }>;
+    update: (v: unknown) => { eq: (c: string, val: string) => Promise<{ error: { message: string } | null }> };
+    delete: () => { eq: (c: string, val: string) => Promise<{ error: { message: string } | null }> };
+    select: (s: string) => {
+      gt: (c: string, val: string) => unknown;
+      order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+    };
+  };
+};
 
 export type SyncResult = { pushed: number; failed: number; pulled: number };
 
@@ -26,21 +37,15 @@ async function pushOutbox(): Promise<{ pushed: number; failed: number }> {
   let failed = 0;
 
   for (const entry of entries) {
-    const table = entry.table as SyncedTable;
     try {
       if (entry.op === 'insert') {
-        const { error } = await supabase
-          .from(table)
-          .upsert(entry.payload as TablesInsert<'training_sessions'>, { onConflict: 'id' });
+        const { error } = await db.from(entry.table).upsert(entry.payload, { onConflict: 'id' });
         if (error) throw new Error(error.message);
       } else if (entry.op === 'update') {
-        const { error } = await supabase
-          .from(table)
-          .update(entry.payload as TablesUpdate<'training_sessions'>)
-          .eq('id', entry.recordId);
+        const { error } = await db.from(entry.table).update(entry.payload).eq('id', entry.recordId);
         if (error) throw new Error(error.message);
       } else {
-        const { error } = await supabase.from(table).delete().eq('id', entry.recordId);
+        const { error } = await db.from(entry.table).delete().eq('id', entry.recordId);
         if (error) throw new Error(error.message);
       }
       done.push(entry.id);
@@ -55,16 +60,18 @@ async function pushOutbox(): Promise<{ pushed: number; failed: number }> {
   return { pushed, failed };
 }
 
+type SyncedRow = { id: string; updated_at: string };
+
 async function pullChanges(): Promise<number> {
   let pulled = 0;
   for (const table of SYNCED_TABLES) {
     const since = await readJson<string | null>(keys.meta(`lastPulled:${table}`), null);
-    let query = supabase.from(table).select('*');
-    if (since) query = query.gt('updated_at', since);
-    const { data, error } = await query.order('updated_at', { ascending: true });
+    const base = db.from(table).select('*');
+    const filtered = since ? (base.gt('updated_at', since) as typeof base) : base;
+    const { data, error } = await filtered.order('updated_at', { ascending: true });
     if (error) throw new Error(error.message);
 
-    const rows = (data ?? []) as Tables<'training_sessions'>[];
+    const rows = (data ?? []) as SyncedRow[];
     if (rows.length > 0) {
       await collection.upsertMany(table, rows);
       const last = rows[rows.length - 1];

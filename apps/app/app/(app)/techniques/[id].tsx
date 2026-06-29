@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { MASTERY_LABELS_PL } from '@dsw/core';
 import { Banner, Card, H1, H2, Muted, P, Screen } from '@/components/ui';
 import { useTheme } from '@/theme';
 import { ENV } from '@/lib/env';
@@ -9,6 +10,7 @@ import {
   syncTechniqueDictionary,
   type Technique,
 } from '@/features/techniques/repository';
+import { getTechniqueProgress, type TechniqueProgress } from '@/features/progress/derive';
 
 const REL_LABELS: Record<string, string> = {
   variant_of: 'Wariant',
@@ -22,6 +24,7 @@ export default function TechniqueDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [technique, setTechnique] = useState<Technique | undefined>();
   const [relations, setRelations] = useState<{ relation: string; technique: Technique }[]>([]);
+  const [progress, setProgress] = useState<TechniqueProgress | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -36,6 +39,7 @@ export default function TechniqueDetail() {
         if (id) {
           setTechnique(await getTechnique(id));
           setRelations(await getRelations(id));
+          setProgress(await getTechniqueProgress(id));
         }
       })();
     }, [id]),
@@ -67,7 +71,19 @@ export default function TechniqueDetail() {
 
           <Card>
             <H2>Twój postęp</H2>
-            <Muted>Postęp w tej technice pojawi się, gdy oznaczysz ją na treningu.</Muted>
+            {progress ? (
+              <>
+                <P>
+                  Poziom: {MASTERY_LABELS_PL[progress.level]} ({progress.level}/4)
+                </P>
+                <Muted>
+                  Oznaczona {progress.practiceCount}× · ostatnio{' '}
+                  {progress.lastPracticedAt ? formatDate(progress.lastPracticedAt) : '—'}
+                </Muted>
+              </>
+            ) : (
+              <Muted>Postęp pojawi się, gdy oznaczysz tę technikę na treningu.</Muted>
+            )}
           </Card>
 
           {relations.length > 0 && (
@@ -88,4 +104,12 @@ export default function TechniqueDetail() {
       )}
     </Screen>
   );
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('pl-PL', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }

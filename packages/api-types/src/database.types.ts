@@ -279,6 +279,70 @@ export interface Database {
           },
         ];
       };
+      session_techniques: {
+        Row: {
+          id: string;
+          session_id: string;
+          technique_id: string;
+          user_id: string;
+          outcome: string | null;
+          reps: number | null;
+          went_well: string | null;
+          went_bad: string | null;
+          confidence: number | null;
+          source: string;
+          created_at: string;
+          updated_at: string;
+          version: number;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          technique_id: string;
+          user_id: string;
+          outcome?: string | null;
+          reps?: number | null;
+          went_well?: string | null;
+          went_bad?: string | null;
+          confidence?: number | null;
+          source?: string;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          technique_id?: string;
+          user_id?: string;
+          outcome?: string | null;
+          reps?: number | null;
+          went_well?: string | null;
+          went_bad?: string | null;
+          confidence?: number | null;
+          source?: string;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'session_techniques_session_id_fkey';
+            columns: ['session_id'];
+            referencedRelation: 'training_sessions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'session_techniques_technique_id_fkey';
+            columns: ['technique_id'];
+            referencedRelation: 'techniques';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;

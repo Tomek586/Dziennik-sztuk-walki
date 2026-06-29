@@ -5,11 +5,13 @@ import { trainingSessionInputSchema, type TrainingSessionInput } from '@dsw/core
 import { Banner, Button, Chip, H1, Muted, Screen, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/auth-context';
 import { createSession } from '@/features/sessions/repository';
+import { TechniquePicker, type PickedTechnique } from '@/features/sessions/TechniquePicker';
 import {
   listDisciplines,
   syncDisciplines,
   type Discipline,
 } from '@/features/disciplines/repository';
+import { syncTechniqueDictionary } from '@/features/techniques/repository';
 import { synchronize } from '@/offline/sync';
 import { ENV } from '@/lib/env';
 import { nowIso } from '@/lib/id';
@@ -28,6 +30,7 @@ export default function NewSession() {
   const [notes, setNotes] = useState('');
   const [wentWell, setWentWell] = useState('');
   const [wentBad, setWentBad] = useState('');
+  const [picked, setPicked] = useState<PickedTechnique[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -36,7 +39,7 @@ export default function NewSession() {
     (async () => {
       if (ENV.isConfigured) {
         try {
-          await syncDisciplines();
+          await Promise.all([syncDisciplines(), syncTechniqueDictionary()]);
         } catch {
           // offline — użyjemy lokalnego cache, jeśli istnieje
         }
@@ -82,7 +85,11 @@ export default function NewSession() {
 
     setSaving(true);
     try {
-      await createSession(userId, parsed.data);
+      await createSession(
+        userId,
+        parsed.data,
+        picked.map((p) => ({ techniqueId: p.technique.id, outcome: p.outcome })),
+      );
       if (ENV.isConfigured) {
         try {
           await synchronize();
@@ -169,6 +176,8 @@ export default function NewSession() {
         multiline
       />
       <TextField label="Co poszło źle" value={wentBad} onChangeText={setWentBad} multiline />
+
+      <TechniquePicker value={picked} onChange={setPicked} />
 
       {error && <Banner tone="error">{error}</Banner>}
 

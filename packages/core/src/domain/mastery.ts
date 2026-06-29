@@ -16,6 +16,21 @@ export const MASTERY_LABELS_PL: Record<MasteryLevel, string> = {
 /** Rezultat ćwiczenia techniki w danej sesji. */
 export type TechniqueOutcome = 'learned' | 'drilled' | 'worked_in_sparring' | 'failed';
 
+/** Kolejność do prezentacji w UI. */
+export const TECHNIQUE_OUTCOMES: readonly TechniqueOutcome[] = [
+  'learned',
+  'drilled',
+  'worked_in_sparring',
+  'failed',
+];
+
+export const OUTCOME_LABELS_PL: Record<TechniqueOutcome, string> = {
+  learned: 'Poznana',
+  drilled: 'Ćwiczona',
+  worked_in_sparring: 'Sparing',
+  failed: 'Nie wyszła',
+};
+
 /**
  * Minimalny poziom, jaki dany rezultat „odblokowuje".
  * `failed` nie obniża ani nie podnosi — patrz nextMasteryLevel.
