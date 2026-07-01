@@ -28,6 +28,10 @@ export default function AppLayout() {
       <Stack.Screen name="goals" options={{ title: 'Cele' }} />
       <Stack.Screen name="watchlist" options={{ title: 'Do nauki' }} />
       <Stack.Screen name="techniques/index" options={{ title: 'Biblioteka technik' }} />
+      <Stack.Screen
+        name="techniques/new"
+        options={{ title: 'Własna technika', presentation: 'modal' }}
+      />
       <Stack.Screen name="techniques/[id]" options={{ title: 'Technika' }} />
       <Stack.Screen name="session/[id]" options={{ title: 'Trening' }} />
     </Stack>

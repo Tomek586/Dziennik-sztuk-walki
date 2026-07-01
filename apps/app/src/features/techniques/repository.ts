@@ -55,6 +55,38 @@ export async function searchTechniques(query: string): Promise<Technique[]> {
   );
 }
 
+/** Tworzy własną (prywatną) technikę użytkownika i odświeża lokalny słownik. */
+export async function createCustomTechnique(
+  userId: string,
+  input: {
+    disciplineId: string;
+    namePl: string;
+    nameEn: string;
+    category: string;
+    position?: string | null;
+  },
+): Promise<Technique> {
+  const base = normalizeTechnique(input.nameEn || input.namePl).replace(/ /g, '-') || 'technika';
+  const slug = `custom-${base}-${Math.random().toString(36).slice(2, 7)}`;
+  const { data, error } = await supabase
+    .from('techniques')
+    .insert({
+      discipline_id: input.disciplineId,
+      name_pl: input.namePl,
+      name_en: input.nameEn || input.namePl,
+      slug,
+      category: input.category || 'inne',
+      position: input.position ?? null,
+      is_official: false,
+      created_by: userId,
+    })
+    .select('*')
+    .single();
+  if (error) throw new Error(error.message);
+  await syncTechniqueDictionary();
+  return data as Technique;
+}
+
 /** Powiązane techniki (relacje wychodzące od danej techniki). */
 export async function getRelations(
   techniqueId: string,

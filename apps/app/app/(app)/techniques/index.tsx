@@ -77,6 +77,9 @@ export default function TechniqueLibrary() {
               placeholder="np. duszenie, RNC, trójkąt"
               autoCapitalize="none"
             />
+            <Link href="/techniques/new" style={{ color: t.primary, fontWeight: '600' }}>
+              + Dodaj własną technikę
+            </Link>
             {loaded && techniques.length === 0 && (
               <Banner tone="warn">
                 Brak technik w bazie. Wgraj słownik: w panelu Supabase uruchom migrację
