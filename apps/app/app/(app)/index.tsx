@@ -163,6 +163,12 @@ export default function Home() {
               Biblioteka technik →
             </Link>
             <Link
+              href="/goals"
+              style={{ color: t.primary, fontWeight: '600', textAlign: 'center' }}
+            >
+              Cele →
+            </Link>
+            <Link
               href="/settings"
               style={{ color: t.primary, fontWeight: '600', textAlign: 'center' }}
             >

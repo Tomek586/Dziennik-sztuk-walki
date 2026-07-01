@@ -9,3 +9,7 @@ allowBuilds:
   esbuild: true
 onlyBuiltDependencies:
   - esbuild
+minimumReleaseAgeExclude:
+  - '@expo/config-plugins@56.0.10'
+  - '@expo/config-types@56.0.7'
+  - expo-sharing@56.0.19

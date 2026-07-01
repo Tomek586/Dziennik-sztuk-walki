@@ -29,6 +29,7 @@ Dla każdej: nazwa **dokładnie** jak niżej, wklej zawartość pliku, **Deploy*
 | `transcribe` | [`supabase/functions/transcribe/index.ts`](../supabase/functions/transcribe/index.ts) |
 | `extract`    | [`supabase/functions/extract/index.ts`](../supabase/functions/extract/index.ts) |
 | `materials`  | [`supabase/functions/materials/index.ts`](../supabase/functions/materials/index.ts) |
+| `account-delete` | [`supabase/functions/account-delete/index.ts`](../supabase/functions/account-delete/index.ts) — usuwanie konta (RODO); nie wymaga kluczy |
 
 Domyślne ustawienia są OK (weryfikacja JWT włączona — aplikacja wysyła token
 zalogowanego użytkownika).

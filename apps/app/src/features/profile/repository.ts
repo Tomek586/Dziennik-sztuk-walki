@@ -15,3 +15,9 @@ export async function updateProfile(
   const { error } = await supabase.from('profiles').update(patch).eq('id', userId);
   if (error) throw new Error(error.message);
 }
+
+/** Usuwa konto i wszystkie dane (RODO) — przez Edge Function account-delete. */
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.functions.invoke('account-delete', { body: {} });
+  if (error) throw new Error(error.message);
+}

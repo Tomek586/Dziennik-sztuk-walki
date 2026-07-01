@@ -20,6 +20,10 @@ const SYNCED_TABLES = [
   'grades',
   'voice_notes',
   'ai_extractions',
+  'goals',
+  'user_technique_notes',
+  'watchlist',
+  'material_feedback',
 ] as const;
 
 // supabase-js słabo wspiera dynamiczne nazwy tabel — w silniku sync świadomie

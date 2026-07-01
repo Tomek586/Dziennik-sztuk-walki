@@ -5,13 +5,19 @@ import { Banner, Button, Card, Chip, H1, H2, Muted, P, Screen, TextField } from 
 import { useTheme } from '@/theme';
 import { ENV } from '@/lib/env';
 import { useAuth } from '@/features/auth/auth-context';
-import { getProfile, updateProfile, type Profile } from '@/features/profile/repository';
+import {
+  deleteAccount,
+  getProfile,
+  updateProfile,
+  type Profile,
+} from '@/features/profile/repository';
 import {
   listDisciplines,
   syncDisciplines,
   type Discipline,
 } from '@/features/disciplines/repository';
 import { addGrade, deleteGrade, listGrades, type GradeRow } from '@/features/metrics/repository';
+import { exportData } from '@/features/export/exportData';
 import { synchronize } from '@/offline/sync';
 
 export default function Settings() {
@@ -28,6 +34,34 @@ export default function Settings() {
   const [grades, setGrades] = useState<GradeRow[]>([]);
   const [gradeDisc, setGradeDisc] = useState<string | null>(null);
   const [gradeLabel, setGradeLabel] = useState('');
+
+  const [dataMsg, setDataMsg] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  async function onExport() {
+    setDataMsg(null);
+    try {
+      await exportData();
+      setDataMsg('Wyeksportowano dane (JSON).');
+    } catch (e) {
+      setDataMsg(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function onDeleteAccount() {
+    if (!confirmingDelete) {
+      setConfirmingDelete(true);
+      return;
+    }
+    setDataMsg(null);
+    try {
+      await deleteAccount();
+      await signOut();
+    } catch (e) {
+      setDataMsg(e instanceof Error ? e.message : String(e));
+      setConfirmingDelete(false);
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -153,12 +187,32 @@ export default function Settings() {
 
       <Card>
         <H2>Więcej</H2>
+        <Link href="/goals" style={{ color: t.primary, fontWeight: '600', paddingVertical: 4 }}>
+          Cele →
+        </Link>
+        <Link href="/watchlist" style={{ color: t.primary, fontWeight: '600', paddingVertical: 4 }}>
+          Techniki do nauki →
+        </Link>
         <Link href="/metrics" style={{ color: t.primary, fontWeight: '600', paddingVertical: 4 }}>
           Waga i forma →
         </Link>
         <Link href="/sync" style={{ color: t.primary, fontWeight: '600', paddingVertical: 4 }}>
           Synchronizacja i diagnostyka →
         </Link>
+      </Card>
+
+      <Card>
+        <H2>Dane i konto</H2>
+        <Muted>Eksport wszystkich danych do pliku JSON.</Muted>
+        <Button title="Eksportuj dane (JSON)" variant="ghost" onPress={onExport} />
+        {dataMsg && <Banner tone="info">{dataMsg}</Banner>}
+        <Muted>Usunięcie konta kasuje wszystkie dane bezpowrotnie (RODO).</Muted>
+        <Button
+          title={confirmingDelete ? 'Potwierdź: usuń konto na zawsze' : 'Usuń konto'}
+          variant="danger"
+          onPress={onDeleteAccount}
+          disabled={!ENV.isConfigured}
+        />
       </Card>
 
       <Button title="Wyloguj" variant="danger" onPress={signOut} />

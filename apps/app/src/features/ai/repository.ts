@@ -118,6 +118,7 @@ export async function applyExtraction(
 }
 
 export interface MaterialSource {
+  id: string;
   url: string;
   title: string | null;
   channel: string | null;

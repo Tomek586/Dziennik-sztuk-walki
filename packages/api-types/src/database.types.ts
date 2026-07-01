@@ -664,6 +664,144 @@ export interface Database {
         };
         Relationships: [];
       };
+      goals: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: string;
+          target: Json;
+          title: string | null;
+          due_at: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+          version: number;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          kind: string;
+          target?: Json;
+          title?: string | null;
+          due_at?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          kind?: string;
+          target?: Json;
+          title?: string | null;
+          due_at?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Relationships: [];
+      };
+      user_technique_notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          technique_id: string;
+          body: string;
+          created_at: string;
+          updated_at: string;
+          version: number;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          technique_id: string;
+          body: string;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          technique_id?: string;
+          body?: string;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Relationships: [];
+      };
+      watchlist: {
+        Row: {
+          id: string;
+          user_id: string;
+          technique_id: string;
+          created_at: string;
+          updated_at: string;
+          version: number;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          technique_id: string;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          technique_id?: string;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Relationships: [];
+      };
+      material_feedback: {
+        Row: {
+          id: string;
+          user_id: string;
+          source_id: string;
+          helpful: boolean;
+          created_at: string;
+          updated_at: string;
+          version: number;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source_id: string;
+          helpful: boolean;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          source_id?: string;
+          helpful?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          version?: number;
+          deleted_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;
