@@ -19,7 +19,22 @@ export type SessionTechniqueRow = Tables<'session_techniques'>;
 export interface SessionTechniqueDraft {
   techniqueId: string;
   outcome: TechniqueOutcome | null;
+  confidence?: number | null;
+  source?: 'manual' | 'ai';
 }
+
+export type SparringRow = Tables<'sparring_rounds'>;
+
+/** Podsumowanie sparingów w sesji. */
+export interface SparringDraft {
+  rounds: number | null;
+  result: string | null;
+  tapsFor: number;
+  tapsAgainst: number;
+  notes: string | null;
+}
+
+const T_SPAR = 'sparring_rounds';
 
 export async function listSessions(): Promise<SessionRow[]> {
   const rows = await collection.getAll<SessionRow>(TABLE);
@@ -95,6 +110,8 @@ async function addSessionTechnique(
   ts: string,
 ): Promise<void> {
   const id = newId();
+  const source = draft.source ?? 'manual';
+  const confidence = draft.confidence ?? null;
   const row: SessionTechniqueRow = {
     id,
     session_id: sessionId,
@@ -104,8 +121,8 @@ async function addSessionTechnique(
     reps: null,
     went_well: null,
     went_bad: null,
-    confidence: null,
-    source: 'manual',
+    confidence,
+    source,
     created_at: ts,
     updated_at: ts,
     version: 1,
@@ -119,9 +136,60 @@ async function addSessionTechnique(
     technique_id: draft.techniqueId,
     user_id: userId,
     outcome: draft.outcome,
-    source: 'manual',
+    confidence,
+    source,
   };
   await enqueue(T_ST, 'insert', id, payload as Record<string, unknown>);
+}
+
+export async function createSparringRound(
+  userId: string,
+  sessionId: string,
+  draft: SparringDraft,
+): Promise<void> {
+  const id = newId();
+  const ts = nowIso();
+  const row: SparringRow = {
+    id,
+    session_id: sessionId,
+    user_id: userId,
+    round_no: draft.rounds,
+    duration_min: null,
+    partner_label: null,
+    partner_level: null,
+    result: draft.result,
+    taps_for: draft.tapsFor,
+    taps_against: draft.tapsAgainst,
+    finish_technique_id: null,
+    notes: draft.notes,
+    created_at: ts,
+    updated_at: ts,
+    version: 1,
+    deleted_at: null,
+  };
+  await collection.upsertOne(T_SPAR, row);
+
+  const payload: TablesInsert<'sparring_rounds'> = {
+    id,
+    session_id: sessionId,
+    user_id: userId,
+    round_no: draft.rounds,
+    result: draft.result,
+    taps_for: draft.tapsFor,
+    taps_against: draft.tapsAgainst,
+    notes: draft.notes,
+  };
+  await enqueue(T_SPAR, 'insert', id, payload as Record<string, unknown>);
+}
+
+export async function listSparringRounds(sessionId: string): Promise<SparringRow[]> {
+  const rows = await collection.getAll<SparringRow>(T_SPAR);
+  return rows.filter((r) => r.session_id === sessionId && r.deleted_at == null);
+}
+
+export async function listAllSparringRounds(): Promise<SparringRow[]> {
+  const rows = await collection.getAll<SparringRow>(T_SPAR);
+  return rows.filter((r) => r.deleted_at == null);
 }
 
 /** Miękkie usunięcie sesji (techniki znikną kaskadowo po stronie serwera). */
@@ -139,5 +207,12 @@ export async function softDeleteSession(id: string): Promise<void> {
     const stUpdated: SessionTechniqueRow = { ...st, deleted_at: ts, updated_at: ts };
     await collection.upsertOne(T_ST, stUpdated);
     await enqueue(T_ST, 'update', st.id, { deleted_at: ts });
+  }
+
+  const spars = await listSparringRounds(id);
+  for (const sp of spars) {
+    const spUpdated: SparringRow = { ...sp, deleted_at: ts, updated_at: ts };
+    await collection.upsertOne(T_SPAR, spUpdated);
+    await enqueue(T_SPAR, 'update', sp.id, { deleted_at: ts });
   }
 }

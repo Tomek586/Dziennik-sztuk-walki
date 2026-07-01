@@ -117,6 +117,21 @@ brak offline (sprzeczne z wymaganiami WF-SYNC-*).
 AsyncStorage nie jest wydajny przy bardzo dużych zbiorach — akceptowalne na
 Etapie 0; migracja do WatermelonDB zaplanowana na v1.
 
+## ADR-012 — Darmowy stack AI na start: Groq (Whisper + Llama) zamiast Claude
+**Status:** przyjęta (zakres: Etap 1 MVP, na życzenie: minimalny koszt).
+**Kontekst:** użytkownik chce ruszyć bez wydatków. Claude (ADR-005) i płatne STT
+generują koszt (choć mały).
+**Decyzja:** w MVP używamy **Groq** (darmowy plan): `whisper-large-v3` do
+transkrypcji i `llama-3.3-70b-versatile` do ekstrakcji oraz streszczeń materiałów;
+**YouTube Data API** (darmowy limit) do filmów. Dostawca jest za Edge Functions —
+podmiana na Claude to zmiana jednego sekretu/kodu funkcji, bez ruszania klienta.
+Dodatkowo każda funkcja ma **tryb demo** (bez kluczy): transkrypcja → tekst
+ręczny, ekstrakcja → dopasowanie po słowach kluczowych ze słownika.
+**Alternatywy:** Claude + płatne STT (lepsza jakość, koszt); brak AI (sprzeczne z rdzeniem).
+**Konsekwencje:** zerowy koszt startu i pełna demonstrowalność bez kont; nieco
+niższa jakość niż Claude — akceptowalna, z łatwą ścieżką upgrade'u. Aktualizuje
+ADR-005 i ADR-007 na czas MVP.
+
 ---
 
 ## Decyzje otwarte (do potwierdzenia)

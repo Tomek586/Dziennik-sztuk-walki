@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
 import { Link, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Linking } from 'react-native';
 import { MASTERY_LABELS_PL } from '@dsw/core';
-import { Banner, Card, H1, H2, Muted, P, Screen } from '@/components/ui';
+import { Banner, Button, Card, H1, H2, Muted, P, Screen } from '@/components/ui';
 import { useTheme } from '@/theme';
 import { ENV } from '@/lib/env';
 import {
@@ -11,6 +12,7 @@ import {
   type Technique,
 } from '@/features/techniques/repository';
 import { getTechniqueProgress, type TechniqueProgress } from '@/features/progress/derive';
+import { fetchMaterials, type MaterialData } from '@/features/ai/repository';
 
 const REL_LABELS: Record<string, string> = {
   variant_of: 'Wariant',
@@ -25,6 +27,22 @@ export default function TechniqueDetail() {
   const [technique, setTechnique] = useState<Technique | undefined>();
   const [relations, setRelations] = useState<{ relation: string; technique: Technique }[]>([]);
   const [progress, setProgress] = useState<TechniqueProgress | null>(null);
+  const [material, setMaterial] = useState<MaterialData | null>(null);
+  const [loadingMat, setLoadingMat] = useState(false);
+  const [matError, setMatError] = useState<string | null>(null);
+
+  async function loadMaterials() {
+    if (!id) return;
+    setMatError(null);
+    setLoadingMat(true);
+    try {
+      setMaterial(await fetchMaterials(id));
+    } catch (e) {
+      setMatError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoadingMat(false);
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -63,10 +81,52 @@ export default function TechniqueDetail() {
 
           <Card>
             <H2>Materiały do nauki</H2>
-            <Muted>
-              AI dobierze i streści materiały (filmy, punkty kluczowe, typowe błędy) — pojawią
-              się po włączeniu pipeline'u AI.
-            </Muted>
+            {!material ? (
+              <>
+                <Muted>
+                  AI dobierze streszczenie, punkty kluczowe, typowe błędy i filmy dla tej techniki.
+                </Muted>
+                {matError && <Banner tone="error">{matError}</Banner>}
+                <Button
+                  title="Pobierz materiały (AI)"
+                  onPress={loadMaterials}
+                  loading={loadingMat}
+                  disabled={!ENV.isConfigured}
+                />
+              </>
+            ) : (
+              <>
+                {material.material?.summary ? <P>{material.material.summary}</P> : null}
+                {(material.material?.key_points?.length ?? 0) > 0 && (
+                  <>
+                    <Muted>Punkty kluczowe</Muted>
+                    {material.material?.key_points.map((k, i) => <P key={i}>• {k}</P>)}
+                  </>
+                )}
+                {(material.material?.common_errors?.length ?? 0) > 0 && (
+                  <>
+                    <Muted>Typowe błędy</Muted>
+                    {material.material?.common_errors.map((k, i) => <P key={i}>• {k}</P>)}
+                  </>
+                )}
+                {material.sources.length > 0 && (
+                  <>
+                    <Muted>Filmy</Muted>
+                    {material.sources.map((s, i) => (
+                      <P
+                        key={i}
+                        onPress={() => Linking.openURL(s.url)}
+                        style={{ color: t.primary, fontWeight: '600' }}
+                      >
+                        ▶ {s.title ?? s.url}
+                        {s.channel ? ` — ${s.channel}` : ''}
+                      </P>
+                    ))}
+                  </>
+                )}
+                <Button title="Odśwież materiały" variant="ghost" onPress={loadMaterials} loading={loadingMat} />
+              </>
+            )}
           </Card>
 
           <Card>

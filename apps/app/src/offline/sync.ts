@@ -12,7 +12,15 @@ import { keys, readJson, writeJson } from './local-db';
  * - pull: pobiera zmiany serwera od ostatniego `updated_at` i scala lokalnie.
  * Strategia konfliktów: Last-Write-Wins po `updated_at` (docs/10-offline-sync.md).
  */
-const SYNCED_TABLES = ['training_sessions', 'session_techniques'] as const;
+const SYNCED_TABLES = [
+  'training_sessions',
+  'session_techniques',
+  'sparring_rounds',
+  'body_metrics',
+  'grades',
+  'voice_notes',
+  'ai_extractions',
+] as const;
 
 // supabase-js słabo wspiera dynamiczne nazwy tabel — w silniku sync świadomie
 // rezygnujemy z typowania zapytań (kontrakty pilnują typowane repozytoria).

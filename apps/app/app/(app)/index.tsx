@@ -7,6 +7,7 @@ import { ENV } from '@/lib/env';
 import { useTheme } from '@/theme';
 import {
   listAllSessionTechniques,
+  listAllSparringRounds,
   listSessions,
   softDeleteSession,
   type SessionRow,
@@ -28,14 +29,17 @@ export default function Home() {
   const [syncing, setSyncing] = useState(false);
   const [techCount, setTechCount] = useState<Record<string, number>>({});
   const [progressStat, setProgressStat] = useState({ practiced: 0, working: 0 });
+  const [activity, setActivity] = useState({ week: 0, month: 0, streak: 0 });
+  const [spar, setSpar] = useState({ tapsFor: 0, tapsAgainst: 0, wins: 0, losses: 0 });
 
   const refresh = useCallback(async () => {
-    const [list, state, ds, sts, progress] = await Promise.all([
+    const [list, state, ds, sts, progress, spars] = await Promise.all([
       listSessions(),
       getSyncState(),
       listDisciplines(),
       listAllSessionTechniques(),
       deriveProgress(),
+      listAllSparringRounds(),
     ]);
     setSessions(list);
     setPending(state.pending);
@@ -48,6 +52,26 @@ export default function Home() {
     let working = 0;
     for (const p of progress.values()) if (p.level >= 2) working += 1;
     setProgressStat({ practiced: progress.size, working });
+
+    const now = Date.now();
+    const day = 86_400_000;
+    setActivity({
+      week: list.filter((s) => now - new Date(s.occurred_at).getTime() <= 7 * day).length,
+      month: list.filter((s) => now - new Date(s.occurred_at).getTime() <= 30 * day).length,
+      streak: computeStreak(list),
+    });
+
+    let tf = 0;
+    let ta = 0;
+    let wins = 0;
+    let losses = 0;
+    for (const s of spars) {
+      tf += s.taps_for;
+      ta += s.taps_against;
+      if (s.result === 'win') wins += 1;
+      else if (s.result === 'loss') losses += 1;
+    }
+    setSpar({ tapsFor: tf, tapsAgainst: ta, wins, losses });
   }, []);
 
   const doSync = useCallback(async () => {
@@ -104,6 +128,22 @@ export default function Home() {
                 (poziom 2+)
               </P>
             </Card>
+            <Card>
+              <Muted>Aktywność</Muted>
+              <P>
+                {activity.week} w tym tygodniu · {activity.month} w 30 dni · seria{' '}
+                {activity.streak} dni
+              </P>
+            </Card>
+            {spar.wins + spar.losses + spar.tapsFor + spar.tapsAgainst > 0 && (
+              <Card>
+                <Muted>Sparingi</Muted>
+                <P>
+                  Bilans {spar.wins}–{spar.losses} · tapy złapane/oddane {spar.tapsFor}:
+                  {spar.tapsAgainst}
+                </P>
+              </Card>
+            )}
             <Button title="+ Dodaj trening" onPress={() => router.push('/new')} />
             <Button
               title="● Nagraj notatkę głosową"
@@ -111,10 +151,22 @@ export default function Home() {
               onPress={() => router.push('/record')}
             />
             <Link
+              href="/analyze"
+              style={{ color: t.primary, fontWeight: '600', textAlign: 'center' }}
+            >
+              Opisz trening tekstem (AI) →
+            </Link>
+            <Link
               href="/techniques"
               style={{ color: t.primary, fontWeight: '600', textAlign: 'center' }}
             >
               Biblioteka technik →
+            </Link>
+            <Link
+              href="/settings"
+              style={{ color: t.primary, fontWeight: '600', textAlign: 'center' }}
+            >
+              Ustawienia →
             </Link>
             <H2>Treningi ({sessions.length})</H2>
           </View>
@@ -144,6 +196,9 @@ export default function Home() {
                 .join(' · ') || 'bez szczegółów'}
             </Muted>
             {techCount[item.id] ? <Muted>{techCount[item.id]} technik</Muted> : null}
+            <Link href={`/session/${item.id}`} style={{ color: t.primary, fontWeight: '600' }}>
+              Szczegóły →
+            </Link>
             <View style={{ alignSelf: 'flex-start' }}>
               <Button
                 title="Usuń"
@@ -168,4 +223,20 @@ function formatDate(iso: string): string {
     month: 'short',
     year: 'numeric',
   });
+}
+
+function computeStreak(sessions: SessionRow[]): number {
+  const days = new Set(sessions.map((s) => new Date(s.occurred_at).toISOString().slice(0, 10)));
+  const cursor = new Date();
+  const key = () => cursor.toISOString().slice(0, 10);
+  if (!days.has(key())) {
+    cursor.setDate(cursor.getDate() - 1);
+    if (!days.has(key())) return 0;
+  }
+  let streak = 0;
+  while (days.has(key())) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
 }

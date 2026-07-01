@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { trainingSessionInputSchema, type TrainingSessionInput } from '@dsw/core';
 import { Banner, Button, Chip, H1, Muted, Screen, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/auth-context';
-import { createSession } from '@/features/sessions/repository';
+import { createSession, createSparringRound } from '@/features/sessions/repository';
 import { TechniquePicker, type PickedTechnique } from '@/features/sessions/TechniquePicker';
 import {
   listDisciplines,
@@ -31,6 +31,10 @@ export default function NewSession() {
   const [wentWell, setWentWell] = useState('');
   const [wentBad, setWentBad] = useState('');
   const [picked, setPicked] = useState<PickedTechnique[]>([]);
+  const [sparResult, setSparResult] = useState<string | null>(null);
+  const [sparRounds, setSparRounds] = useState('');
+  const [tapsFor, setTapsFor] = useState('');
+  const [tapsAgainst, setTapsAgainst] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -85,11 +89,25 @@ export default function NewSession() {
 
     setSaving(true);
     try {
-      await createSession(
+      const session = await createSession(
         userId,
         parsed.data,
         picked.map((p) => ({ techniqueId: p.technique.id, outcome: p.outcome })),
       );
+      const hasSparring =
+        sparResult != null ||
+        sparRounds.trim() !== '' ||
+        tapsFor.trim() !== '' ||
+        tapsAgainst.trim() !== '';
+      if (hasSparring) {
+        await createSparringRound(userId, session.id, {
+          rounds: numOrNull(sparRounds),
+          result: sparResult,
+          tapsFor: numOrNull(tapsFor) ?? 0,
+          tapsAgainst: numOrNull(tapsAgainst) ?? 0,
+          notes: null,
+        });
+      }
       if (ENV.isConfigured) {
         try {
           await synchronize();
@@ -178,6 +196,47 @@ export default function NewSession() {
       <TextField label="Co poszło źle" value={wentBad} onChangeText={setWentBad} multiline />
 
       <TechniquePicker value={picked} onChange={setPicked} />
+
+      <View style={{ gap: 8 }}>
+        <Muted>Sparingi (opcjonalnie)</Muted>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {(
+            [
+              ['win', 'Wygrana'],
+              ['loss', 'Przegrana'],
+              ['draw', 'Remis'],
+            ] as const
+          ).map(([value, label]) => (
+            <Chip
+              key={value}
+              label={label}
+              selected={sparResult === value}
+              onPress={() => setSparResult(sparResult === value ? null : value)}
+            />
+          ))}
+        </View>
+        <TextField
+          label="Liczba rund"
+          value={sparRounds}
+          onChangeText={setSparRounds}
+          keyboardType="number-pad"
+          placeholder="np. 5"
+        />
+        <TextField
+          label="Tapy złapane"
+          value={tapsFor}
+          onChangeText={setTapsFor}
+          keyboardType="number-pad"
+          placeholder="0"
+        />
+        <TextField
+          label="Tapy oddane"
+          value={tapsAgainst}
+          onChangeText={setTapsAgainst}
+          keyboardType="number-pad"
+          placeholder="0"
+        />
+      </View>
 
       {error && <Banner tone="error">{error}</Banner>}
 

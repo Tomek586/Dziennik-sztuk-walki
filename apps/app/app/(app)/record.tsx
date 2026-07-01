@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   AudioModule,
   createAudioPlayer,
@@ -17,6 +17,9 @@ import {
   listVoiceNotes,
   type LocalVoiceNote,
 } from '@/features/voice/repository';
+import { useAuth } from '@/features/auth/auth-context';
+import { runExtract, uploadAndTranscribe } from '@/features/ai/repository';
+import { ENV } from '@/lib/env';
 
 function fmtDuration(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -26,11 +29,15 @@ function fmtDuration(ms: number): string {
 }
 
 export default function RecordScreen() {
+  const router = useRouter();
+  const { userId } = useAuth();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(recorder);
   const [permission, setPermission] = useState<boolean | null>(null);
   const [notes, setNotes] = useState<LocalVoiceNote[]>([]);
   const [busy, setBusy] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [procError, setProcError] = useState<string | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
 
   const refresh = useCallback(async () => {
@@ -91,13 +98,41 @@ export default function RecordScreen() {
     await refresh();
   };
 
+  const analyze = async (note: LocalVoiceNote) => {
+    if (!userId || !ENV.isConfigured) {
+      setProcError('Analiza AI wymaga zalogowania i połączenia z internetem.');
+      return;
+    }
+    setProcError(null);
+    setProcessingId(note.id);
+    try {
+      const { voiceNoteId } = await uploadAndTranscribe(
+        userId,
+        note.uri,
+        Math.round(note.durationMs / 1000),
+      );
+      const { extractionId } = await runExtract({ voiceNoteId });
+      router.push({ pathname: '/review', params: { id: extractionId } });
+    } catch (e) {
+      setProcError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   return (
     <Screen>
       <H1>Notatka głosowa</H1>
       <Banner tone="info">
-        Nagraj krótką relację po treningu. W kolejnym kroku AI przepisze ją i wyciągnie techniki —
-        teraz zapisujemy nagranie lokalnie na urządzeniu.
+        Nagraj relację po treningu, a „Analizuj (AI)" przepisze ją i wyciągnie techniki. Bez
+        internetu nagranie zapisze się lokalnie — analizę zrobisz później.
       </Banner>
+      <Button
+        title="✍️ Wpisz tekstem zamiast nagrania"
+        variant="ghost"
+        onPress={() => router.push('/analyze')}
+      />
+      {procError && <Banner tone="error">{procError}</Banner>}
 
       {permission === false && (
         <Banner tone="warn">
@@ -131,7 +166,12 @@ export default function RecordScreen() {
               <P>{fmtDuration(n.durationMs)}</P>
               <Muted>{new Date(n.createdAt).toLocaleString('pl-PL')}</Muted>
             </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <Button
+                title="Analizuj (AI)"
+                onPress={() => analyze(n)}
+                loading={processingId === n.id}
+              />
               <Button title="▶ Odtwórz" variant="ghost" onPress={() => play(n)} />
               <Button title="Usuń" variant="ghost" onPress={() => onDelete(n.id)} />
             </View>

@@ -6,7 +6,9 @@ import {
   Text,
   TextInput,
   View,
+  type StyleProp,
   type TextInputProps,
+  type TextStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
@@ -35,9 +37,21 @@ export function H2({ children }: { children: ReactNode }) {
   return <Text style={{ color: t.text, fontSize: 18, fontWeight: '600' }}>{children}</Text>;
 }
 
-export function P({ children }: { children: ReactNode }) {
+export function P({
+  children,
+  onPress,
+  style,
+}: {
+  children: ReactNode;
+  onPress?: () => void;
+  style?: StyleProp<TextStyle>;
+}) {
   const t = useTheme();
-  return <Text style={{ color: t.text, fontSize: 15, lineHeight: 21 }}>{children}</Text>;
+  return (
+    <Text onPress={onPress} style={[{ color: t.text, fontSize: 15, lineHeight: 21 }, style]}>
+      {children}
+    </Text>
+  );
 }
 
 export function Muted({ children }: { children: ReactNode }) {
