@@ -106,12 +106,12 @@ export default function RecordScreen() {
     setProcError(null);
     setProcessingId(note.id);
     try {
-      const { voiceNoteId } = await uploadAndTranscribe(
+      const { voiceNoteId, transcript } = await uploadAndTranscribe(
         userId,
         note.uri,
         Math.round(note.durationMs / 1000),
       );
-      const { extractionId } = await runExtract({ voiceNoteId });
+      const { extractionId } = await runExtract({ voiceNoteId, transcript });
       router.push({ pathname: '/review', params: { id: extractionId } });
     } catch (e) {
       setProcError(e instanceof Error ? e.message : String(e));

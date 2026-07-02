@@ -1,9 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { Link, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { OUTCOME_LABELS_PL, type TechniqueOutcome } from '@dsw/core';
-import { Banner, Card, H1, H2, Muted, P, Screen } from '@/components/ui';
+import { Banner, Button, Card, H1, H2, Muted, P, Screen } from '@/components/ui';
 import { useTheme } from '@/theme';
+import { getAudioUrl, getSessionNote, type SessionNote } from '@/features/ai/repository';
 import {
   listSessions,
   listSessionTechniques,
@@ -23,6 +25,34 @@ export default function SessionDetail() {
   const [spars, setSpars] = useState<SparringRow[]>([]);
   const [techById, setTechById] = useState<Record<string, Technique>>({});
   const [discById, setDiscById] = useState<Record<string, Discipline>>({});
+  const [note, setNote] = useState<SessionNote | null>(null);
+  const [audioBusy, setAudioBusy] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
+
+  useEffect(() => {
+    return () => {
+      playerRef.current?.remove();
+    };
+  }, []);
+
+  async function playNote() {
+    if (!note?.storagePath) return;
+    setAudioError(null);
+    setAudioBusy(true);
+    try {
+      const url = await getAudioUrl(note.storagePath);
+      await setAudioModeAsync({ playsInSilentMode: true });
+      playerRef.current?.remove();
+      const player = createAudioPlayer({ uri: url });
+      playerRef.current = player;
+      player.play();
+    } catch (e) {
+      setAudioError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAudioBusy(false);
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -40,6 +70,11 @@ export default function SessionDetail() {
         setSpars(sp);
         setTechById(Object.fromEntries(allT.map((x) => [x.id, x])));
         setDiscById(Object.fromEntries(ds.map((d) => [d.id, d])));
+        try {
+          setNote(await getSessionNote(id));
+        } catch {
+          // offline bez lokalnej notatki — panel się nie pokaże
+        }
       })();
     }, [id]),
   );
@@ -64,9 +99,27 @@ export default function SessionDetail() {
               .join(' · ') || 'bez szczegółów'}
           </Muted>
 
+          {note && (note.transcript || note.storagePath) ? (
+            <Card>
+              <Muted>Twoja notatka z treningu</Muted>
+              {note.transcript ? <P>{note.transcript}</P> : null}
+              {note.storagePath ? (
+                <View style={{ alignSelf: 'flex-start' }}>
+                  <Button
+                    title={`▶ Odtwórz nagranie${note.durationS ? ` (${fmtDur(note.durationS)})` : ''}`}
+                    variant="ghost"
+                    onPress={playNote}
+                    loading={audioBusy}
+                  />
+                </View>
+              ) : null}
+              {audioError && <Banner tone="error">{audioError}</Banner>}
+            </Card>
+          ) : null}
+
           {session.notes ? (
             <Card>
-              <Muted>Notatki</Muted>
+              <Muted>Podsumowanie (AI)</Muted>
               <P>{session.notes}</P>
             </Card>
           ) : null}
@@ -126,4 +179,9 @@ export default function SessionDetail() {
       )}
     </Screen>
   );
+}
+
+function fmtDur(s: number): string {
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, '0')}`;
 }

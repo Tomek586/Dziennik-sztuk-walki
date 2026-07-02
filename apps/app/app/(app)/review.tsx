@@ -13,6 +13,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import {
   applyExtraction,
   getExtraction,
+  getExtractionTranscript,
   type ExtractedTechnique,
   type ExtractionRaw,
 } from '@/features/ai/repository';
@@ -24,6 +25,7 @@ import {
 import type { SessionTechniqueDraft, SparringDraft } from '@/features/sessions/repository';
 import { ENV } from '@/lib/env';
 import { nowIso } from '@/lib/id';
+import { useTheme } from '@/theme';
 
 type TechState = ExtractedTechnique & { include: boolean };
 
@@ -31,8 +33,11 @@ export default function Review() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { userId } = useAuth();
+  const t = useTheme();
 
   const [raw, setRaw] = useState<ExtractionRaw | null>(null);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [showTranscript, setShowTranscript] = useState(false);
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [disciplineId, setDisciplineId] = useState<string | null>(null);
   const [sessionType, setSessionType] = useState('');
@@ -56,6 +61,7 @@ export default function Review() {
       setDisciplines(ds);
       setDisciplineId((c) => c ?? ds[0]?.id ?? null);
       if (id) {
+        setTranscript(await getExtractionTranscript(id));
         const ex = await getExtraction(id);
         if (ex) {
           setRaw(ex);
@@ -141,6 +147,21 @@ export default function Review() {
             <Card>
               <Muted>Podsumowanie</Muted>
               <P>{raw.session.summary}</P>
+            </Card>
+          ) : null}
+
+          {transcript ? (
+            <Card>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Muted>Twoja notatka</Muted>
+                <P
+                  onPress={() => setShowTranscript((v) => !v)}
+                  style={{ color: t.primary, fontWeight: '700', fontSize: 13 }}
+                >
+                  {showTranscript ? 'zwiń' : 'pokaż'}
+                </P>
+              </View>
+              {showTranscript && <P>{transcript}</P>}
             </Card>
           ) : null}
 

@@ -2,6 +2,7 @@ import type { TechniqueOutcome, TrainingSessionInput } from '@dsw/core';
 import { supabase } from '@/lib/supabase';
 import { newId } from '@/lib/id';
 import * as collection from '@/offline/collection';
+import { enqueue } from '@/offline/outbox';
 import {
   createSession,
   createSparringRound,
@@ -42,7 +43,13 @@ export interface ExtractionRaw {
 }
 
 const T_EXT_LOCAL = 'ai_extractions_local';
-type ExtractionCache = { id: string; raw: ExtractionRaw };
+const T_VOICE = 'voice_notes';
+type ExtractionCache = {
+  id: string;
+  raw: ExtractionRaw;
+  voiceNoteId?: string | null;
+  transcript?: string | null;
+};
 
 async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke(fn, { body });
@@ -83,13 +90,44 @@ export async function uploadAndTranscribe(
 export async function runExtract(input: {
   voiceNoteId?: string;
   text?: string;
+  userId?: string;
+  /** transkrypcja do lokalnego podglądu (ścieżka głosowa przekazuje ją tutaj) */
+  transcript?: string;
 }): Promise<{ extractionId: string; raw: ExtractionRaw }> {
+  let voiceNoteId = input.voiceNoteId ?? null;
+  let transcript = input.transcript ?? input.text ?? null;
+
+  // Ścieżka tekstowa: zapisz oryginalny tekst jako notatkę (voice_note bez audio),
+  // żeby dało się ją potem powiązać z treningiem i podejrzeć w szczegółach.
+  if (!voiceNoteId && input.text && input.userId) {
+    const id = newId();
+    const ins = await supabase.from('voice_notes').insert({
+      id,
+      user_id: input.userId,
+      storage_path: null,
+      transcript: input.text,
+      status: 'transcribed',
+    });
+    if (!ins.error) voiceNoteId = id;
+  }
+
   const res = await invoke<{ extraction_id: string; raw: ExtractionRaw }>('extract', {
-    voice_note_id: input.voiceNoteId,
-    text: input.text,
+    voice_note_id: voiceNoteId ?? undefined,
+    text: voiceNoteId ? undefined : input.text,
   });
-  await collection.upsertOne<ExtractionCache>(T_EXT_LOCAL, { id: res.extraction_id, raw: res.raw });
+  await collection.upsertOne<ExtractionCache>(T_EXT_LOCAL, {
+    id: res.extraction_id,
+    raw: res.raw,
+    voiceNoteId,
+    transcript,
+  });
   return { extractionId: res.extraction_id, raw: res.raw };
+}
+
+/** Oryginalna transkrypcja/tekst dla ekstrakcji (z lokalnego cache). */
+export async function getExtractionTranscript(id: string): Promise<string | null> {
+  const local = await collection.getById<ExtractionCache>(T_EXT_LOCAL, id);
+  return local?.transcript ?? null;
 }
 
 export async function getExtraction(id: string): Promise<ExtractionRaw | null> {
@@ -109,12 +147,90 @@ export async function applyExtraction(
 ): Promise<void> {
   const session = await createSession(userId, sessionInput, techniques);
   for (const s of sparring) await createSparringRound(userId, session.id, s);
+
+  // Powiąż notatkę źródłową (głosową/tekstową) z utworzonym treningiem —
+  // lokalnie od razu (podgląd offline) + przez outbox na serwer.
+  const cached = await collection.getById<ExtractionCache>(T_EXT_LOCAL, extractionId);
+  if (cached?.voiceNoteId) {
+    const existing = await collection.getById<{ id: string } & Record<string, unknown>>(
+      T_VOICE,
+      cached.voiceNoteId,
+    );
+    await collection.upsertOne(T_VOICE, {
+      id: cached.voiceNoteId,
+      user_id: userId,
+      transcript: cached.transcript ?? null,
+      storage_path: null,
+      status: 'extracted',
+      duration_s: null,
+      lang: 'pl',
+      error: null,
+      created_at: session.created_at,
+      updated_at: session.updated_at,
+      version: 1,
+      deleted_at: null,
+      ...(existing ?? {}),
+      session_id: session.id,
+    });
+    await enqueue(T_VOICE, 'update', cached.voiceNoteId, { session_id: session.id });
+  }
+
   try {
     await supabase.from('ai_extractions').update({ status: 'applied' }).eq('id', extractionId);
   } catch {
     // best-effort — offline/limit; nie blokuje zapisu
   }
   await collection.removeOne(T_EXT_LOCAL, extractionId);
+}
+
+/** Notatka źródłowa treningu (transkrypcja + ewentualne audio). */
+export interface SessionNote {
+  id: string;
+  transcript: string | null;
+  storagePath: string | null;
+  durationS: number | null;
+}
+
+export async function getSessionNote(sessionId: string): Promise<SessionNote | null> {
+  type VoiceRow = {
+    id: string;
+    session_id: string | null;
+    transcript: string | null;
+    storage_path: string | null;
+    duration_s: number | null;
+    deleted_at: string | null;
+  };
+  const local = (await collection.getAll<VoiceRow & { id: string }>(T_VOICE)).find(
+    (r) => r.session_id === sessionId && r.deleted_at == null,
+  );
+  let row: VoiceRow | undefined = local;
+  // lokalny wpis bywa niepełny (np. brak storage_path tuż po zapisie) — dociągnij z serwera
+  if (!row || (row.storage_path == null && row.transcript == null)) {
+    const { data } = await supabase
+      .from('voice_notes')
+      .select('id, session_id, transcript, storage_path, duration_s, deleted_at')
+      .eq('session_id', sessionId)
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle();
+    if (data) row = data as VoiceRow;
+  }
+  if (!row) return null;
+  return {
+    id: row.id,
+    transcript: row.transcript,
+    storagePath: row.storage_path,
+    durationS: row.duration_s,
+  };
+}
+
+/** Krótkotrwały podpisany URL do odtworzenia nagrania z prywatnego bucketu. */
+export async function getAudioUrl(storagePath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from('voice-notes')
+    .createSignedUrl(storagePath, 3600);
+  if (error || !data?.signedUrl) throw new Error(error?.message ?? 'brak dostępu do nagrania');
+  return data.signedUrl;
 }
 
 export interface MaterialSource {
