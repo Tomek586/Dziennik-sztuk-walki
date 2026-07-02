@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { Banner, Button, H1, Muted, Screen, TextField } from '@/components/ui';
+import { Banner, Button, HeroPanel, Muted, Screen, TextField } from '@/components/ui';
+import { Rise } from '@/components/animated';
 import { useAuth } from '@/features/auth/auth-context';
 import { ENV } from '@/lib/env';
 import { useTheme } from '@/theme';
@@ -26,42 +27,53 @@ export default function SignIn() {
 
   return (
     <Screen>
-      <H1>Zaloguj się</H1>
-      <Muted>Dziennik Sztuk Walki</Muted>
+      <View style={{ maxWidth: 440, width: '100%', alignSelf: 'center', gap: 16, paddingTop: 40 }}>
+        <Rise>
+          <View style={{ alignItems: 'center', gap: 4, paddingBottom: 8 }}>
+            <Text style={{ fontSize: 44 }}>🥋</Text>
+            <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>
+              DZIENNIK<Text style={{ color: t.primary }}> SW</Text>
+            </Text>
+            <Muted>Twój progres w sztukach walki</Muted>
+          </View>
+        </Rise>
 
-      {!ENV.isConfigured && (
-        <Banner tone="warn">
-          Brak konfiguracji Supabase. Uzupełnij EXPO_PUBLIC_SUPABASE_URL oraz
-          EXPO_PUBLIC_SUPABASE_ANON_KEY w pliku apps/app/.env, aby logowanie działało.
-        </Banner>
-      )}
+        <Rise delay={80}>
+          <HeroPanel>
+            {!ENV.isConfigured && (
+              <Banner tone="warn">
+                Brak konfiguracji Supabase — uzupełnij apps/app/.env, aby logowanie działało.
+              </Banner>
+            )}
+            <TextField
+              label="E-mail"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              placeholder="ty@example.com"
+            />
+            <TextField
+              label="Hasło"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="••••••••"
+            />
+            {error && <Banner tone="error">{error}</Banner>}
+            <Button title="Zaloguj się" onPress={onSubmit} loading={loading} />
+          </HeroPanel>
+        </Rise>
 
-      <TextField
-        label="E-mail"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        placeholder="ty@example.com"
-      />
-      <TextField
-        label="Hasło"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        placeholder="••••••••"
-      />
-
-      {error && <Banner tone="error">{error}</Banner>}
-
-      <Button title="Zaloguj" onPress={onSubmit} loading={loading} />
-
-      <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 4 }}>
-        <Muted>Nie masz konta?</Muted>
-        <Link href="/sign-up" style={{ color: t.primary, fontWeight: '600', fontSize: 13 }}>
-          Załóż konto
-        </Link>
+        <Rise delay={160}>
+          <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'center' }}>
+            <Text style={{ color: t.muted, fontSize: 13 }}>Nie masz konta?</Text>
+            <Link href="/sign-up" style={{ color: t.primary, fontWeight: '700', fontSize: 13 }}>
+              Załóż konto
+            </Link>
+          </View>
+        </Rise>
       </View>
     </Screen>
   );

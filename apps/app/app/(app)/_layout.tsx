@@ -11,13 +11,14 @@ export default function AppLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: t.bg },
+        headerStyle: { backgroundColor: t.bgAlt },
         headerTintColor: t.text,
+        headerTitleStyle: { fontWeight: '700' },
         headerShadowVisible: false,
         contentStyle: { backgroundColor: t.bg },
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Dziennik' }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="new" options={{ title: 'Nowy trening', presentation: 'modal' }} />
       <Stack.Screen name="record" options={{ title: 'Notatka głosowa', presentation: 'modal' }} />
       <Stack.Screen name="analyze" options={{ title: 'Opisz trening', presentation: 'modal' }} />
@@ -27,7 +28,6 @@ export default function AppLayout() {
       <Stack.Screen name="settings" options={{ title: 'Ustawienia' }} />
       <Stack.Screen name="goals" options={{ title: 'Cele' }} />
       <Stack.Screen name="watchlist" options={{ title: 'Do nauki' }} />
-      <Stack.Screen name="techniques/index" options={{ title: 'Biblioteka technik' }} />
       <Stack.Screen
         name="techniques/new"
         options={{ title: 'Własna technika', presentation: 'modal' }}
