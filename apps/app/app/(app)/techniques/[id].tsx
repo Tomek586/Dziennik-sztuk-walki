@@ -63,12 +63,12 @@ export default function TechniqueDetail() {
     setFeedbackState((prev) => ({ ...prev, [sourceId]: helpful }));
   }
 
-  async function loadMaterials() {
+  async function loadMaterials(force = false) {
     if (!id) return;
     setMatError(null);
     setLoadingMat(true);
     try {
-      const data = await fetchMaterials(id);
+      const data = await fetchMaterials(id, force);
       setMaterial(data);
       const fb: Record<string, boolean | null> = {};
       for (const s of data.sources) fb[s.id] = await getFeedback(s.id);
@@ -133,7 +133,7 @@ export default function TechniqueDetail() {
                 {matError && <Banner tone="error">{matError}</Banner>}
                 <Button
                   title="Pobierz materiały (AI)"
-                  onPress={loadMaterials}
+                  onPress={() => loadMaterials(false)}
                   loading={loadingMat}
                   disabled={!ENV.isConfigured}
                 />
@@ -183,7 +183,12 @@ export default function TechniqueDetail() {
                     ))}
                   </>
                 )}
-                <Button title="Odśwież materiały" variant="ghost" onPress={loadMaterials} loading={loadingMat} />
+                <Button
+                  title="Odśwież materiały"
+                  variant="ghost"
+                  onPress={() => loadMaterials(true)}
+                  loading={loadingMat}
+                />
               </>
             )}
           </Card>
