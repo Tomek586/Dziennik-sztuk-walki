@@ -16,8 +16,9 @@ export function InkSpine() {
     let raf = 0;
     const tick = () => {
       const p = scrollState.progress;
-      // kreska lekko wyprzedza scroll — czubek pędzla prowadzi oko
-      const drawn = Math.min(1, p * 1.06 + 0.02);
+      // kreska WYRAŹNIE wyprzedza scroll — czubek pędzla leci przed okiem,
+      // dzięki czemu aktywny front zawsze zostaje w kadrze
+      const drawn = Math.min(1, p * 1.5 + 0.05);
       const main = mainRef.current;
       const echo = echoRef.current;
       if (main) main.style.strokeDashoffset = String(1 - drawn);
@@ -39,16 +40,15 @@ export function InkSpine() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  // Wijąca się trasa: hero → prawo (głos) → lewo (technika) → prawo (droga)
-  // → środek (rytuał) → finał. Współrzędne w viewBox 0..1000 × 0..4000.
+  // Trasa zawsze schodzi w dół (bez pętli o stałym Y, które powodowały
+  // „zawieszanie" czubka), z miękkim falowaniem lewo-prawo. viewBox 1000×4000.
   const d =
-    'M 150 330 ' +
-    'C 420 520, 820 620, 800 950 ' +
-    'C 785 1210, 420 1300, 260 1560 ' +
-    'C 120 1790, 300 2080, 640 2260 ' +
-    'C 880 2390, 860 2680, 700 2900 ' +
-    'C 560 3090, 420 3220, 480 3450 ' +
-    'C 520 3610, 510 3760, 500 3900';
+    'M 170 180 ' +
+    'C 560 460, 820 700, 720 1040 ' +
+    'C 630 1360, 230 1470, 300 1840 ' +
+    'C 360 2160, 800 2320, 740 2680 ' +
+    'C 690 2990, 320 3120, 400 3480 ' +
+    'C 450 3720, 500 3860, 520 3980';
 
   return (
     <svg
@@ -65,6 +65,17 @@ export function InkSpine() {
       </defs>
 
       <g filter="url(#ink-rough)">
+        {/* prowadnica — ledwo widoczny pełny ślad, żeby trasa nigdy nie znikała */}
+        <path
+          d={d}
+          pathLength={1}
+          fill="none"
+          stroke="var(--vermilion)"
+          strokeWidth={1.6}
+          strokeLinecap="round"
+          opacity={0.1}
+          vectorEffect="non-scaling-stroke"
+        />
         {/* echo — cieńszy, złoty ślad suchego pędzla */}
         <path
           ref={echoRef}
@@ -86,9 +97,9 @@ export function InkSpine() {
           pathLength={1}
           fill="none"
           stroke="var(--vermilion)"
-          strokeWidth={5.5}
+          strokeWidth={6.5}
           strokeLinecap="round"
-          opacity={0.5}
+          opacity={0.7}
           strokeDasharray={1}
           strokeDashoffset={1}
           vectorEffect="non-scaling-stroke"
