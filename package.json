@@ -15,6 +15,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "app": "pnpm --filter @dsw/app",
     "app:web": "pnpm --filter @dsw/app web",
+    "landing": "pnpm --filter @dsw/landing dev",
     "db:types": "supabase gen types typescript --local > packages/api-types/src/database.types.ts"
   },
   "devDependencies": {
