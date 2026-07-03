@@ -25,6 +25,9 @@ apps/app/android/
 supabase/.branches/
 supabase/.temp/
 
+# Źródłowe FBX z Mixamo (ogromne; do repo idą tylko zoptymalizowane .glb)
+apps/landing/public/models-src/*.fbx
+
 # Logi / system
 *.log
 npm-debug.*
