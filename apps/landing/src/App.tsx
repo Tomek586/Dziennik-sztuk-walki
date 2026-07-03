@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { Scene } from '@/three/Scene';
+import { InkSpine } from '@/components/InkSpine';
+import { BrushUnderline } from '@/components/BrushUnderline';
 import { initReveal, initSmoothScroll } from '@/scroll';
 
 const APP_URL = import.meta.env.VITE_APP_URL ?? 'http://localhost:8081';
@@ -31,6 +33,8 @@ export default function App() {
       </header>
 
       <main>
+        <InkSpine />
+
         {/* ============ HERO ============ */}
         <section className="hero">
           <span className="kanji-bg kanji-mark">畳</span>
@@ -42,7 +46,9 @@ export default function App() {
             <br />
             <span className="accent">Mówisz.</span> Rośniesz.
           </h1>
-          <div className="brush-rule" data-reveal="2" />
+          <div data-reveal="2">
+            <BrushUnderline delay={0.35} />
+          </div>
           <p className="tagline" data-reveal="3">
             60 sekund po treningu opowiadasz, co było na macie — TATAMI przepisuje, rozpoznaje
             techniki, liczy sparingi i pokazuje progres, którego wcześniej nie widziałeś.
@@ -69,6 +75,9 @@ export default function App() {
                 01 / GŁOS
               </p>
               <h2 data-reveal="2">Mów, resztą zajmie się AI</h2>
+              <div data-reveal="2">
+                <BrushUnderline />
+              </div>
               <p className="lead" data-reveal="3">
                 Zero wyklikiwania po treningu. Nagrywasz notatkę głosową jak wiadomość do
                 kumpla — transkrypcja, techniki, oceny i sparingi układają się same. Ty tylko
@@ -101,6 +110,9 @@ export default function App() {
                 02 / TECHNIKA
               </p>
               <h2 data-reveal="2">Każda technika pod kontrolą</h2>
+              <div data-reveal="2">
+                <BrushUnderline />
+              </div>
               <p className="lead" data-reveal="3">
                 Słownik technik z aliasami (RNC, mata leão — rozumiemy slang), poziomy
                 opanowania od „poznana” do „działa w sparingu” i materiały wideo dobrane przez
@@ -152,6 +164,9 @@ export default function App() {
                 03 / DROGA
               </p>
               <h2 data-reveal="2">Progres, który widać</h2>
+              <div data-reveal="2">
+                <BrushUnderline />
+              </div>
               <p className="lead" data-reveal="3">
                 Serie treningów, bilans sparingów, tapy za i przeciw, waga, stopnie. Wszystko
                 działa offline — na sali bez zasięgu też. Twoje dane są prywatne i możesz je
@@ -198,6 +213,9 @@ export default function App() {
           <h2 className="display" style={{ fontSize: 'clamp(30px,4.4vw,48px)' }} data-reveal="2">
             Trzy ruchy. Jak dobra kombinacja.
           </h2>
+          <div data-reveal="2">
+            <BrushUnderline />
+          </div>
           <div className="steps">
             <div className="step" data-reveal>
               <div className="s-kanji">一</div>

@@ -203,17 +203,6 @@ section {
   50% { transform: translate(-50%, 8px); }
 }
 
-/* pędzel pod nagłówkiem */
-.brush-rule {
-  width: 180px;
-  height: 10px;
-  margin-top: 30px;
-  background: var(--vermilion);
-  border-radius: 60% 40% 55% 45% / 70% 60% 40% 30%;
-  opacity: 0.9;
-  transform: rotate(-0.6deg) scaleY(0.5);
-}
-
 /* --- karty „washi” --- */
 .feature {
   display: grid;
@@ -375,6 +364,41 @@ footer {
   font-size: 13px;
 }
 footer .f-brand { display: flex; align-items: center; gap: 12px; letter-spacing: 0.25em; font-family: var(--font-display); }
+
+/* --- kreska tuszu przez całą stronę --- */
+.ink-spine {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+@media (max-width: 700px) {
+  .ink-spine { opacity: 0.5; }
+}
+
+/* --- swash pędzla pod nagłówkami --- */
+.brush-underline {
+  display: block;
+  width: min(300px, 60%);
+  height: 26px;
+  margin-top: 6px;
+  overflow: visible;
+}
+.brush-underline .draw-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+[data-reveal].revealed .brush-underline .draw-path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1.1s cubic-bezier(0.3, 0, 0.2, 1);
+  transition-delay: var(--draw-delay, 0s);
+}
+[data-reveal].revealed .brush-underline .draw-path.echo {
+  transition-duration: 1.4s;
+  transition-delay: calc(var(--draw-delay, 0s) + 0.15s);
+}
 
 /* --- reveal przy scrollu --- */
 [data-reveal] {
