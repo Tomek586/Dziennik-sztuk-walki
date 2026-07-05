@@ -1,0 +1,3 @@
+# Expo Router web = SPA (tryb "single"). Netlify musi serwować index.html
+# dla każdej ścieżki, inaczej odświeżenie podstrony (/journal, /session/..) → 404.
+/*    /index.html   200
