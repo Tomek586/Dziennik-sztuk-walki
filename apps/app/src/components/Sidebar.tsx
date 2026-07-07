@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme, gradients, radius, spacing } from '@/theme';
+import { useTheme, fonts, gradients, radius, spacing } from '@/theme';
 
 type NavItem = {
   href: string;
@@ -46,7 +46,7 @@ function Item({ item, active, onPress }: { item: NavItem; active: boolean; onPre
       <Text
         style={{
           color: active ? t.text : t.muted,
-          fontWeight: active ? '700' : '500',
+          fontFamily: active ? fonts.bodySemi : fonts.bodyMedium,
           fontSize: 14.5,
         }}
       >
@@ -76,14 +76,42 @@ export function Sidebar() {
         gap: 4,
       }}
     >
-      {/* logo */}
-      <View style={{ paddingHorizontal: 14, paddingBottom: spacing.xl, gap: 2 }}>
-        <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.4 }}>
-          DZIENNIK<Text style={{ color: t.primary }}> SW</Text>
-        </Text>
-        <Text style={{ color: t.faint, fontSize: 11, letterSpacing: 1.6, fontWeight: '600' }}>
-          SZTUKI WALKI
-        </Text>
+      {/* brand — pieczęć hanko + TATAMI (jak na landingu) */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingHorizontal: 14,
+          paddingBottom: spacing.xl,
+        }}
+      >
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 6,
+            backgroundColor: t.primary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: [{ rotate: '-3deg' }],
+            shadowColor: t.primary,
+            shadowOpacity: 0.35,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 6,
+          }}
+        >
+          <Text style={{ color: '#F2E9DA', fontSize: 22, fontFamily: fonts.display }}>畳</Text>
+        </View>
+        <View style={{ gap: 1 }}>
+          <Text style={{ color: t.text, fontSize: 17, fontFamily: fonts.display, letterSpacing: 4 }}>
+            TATAMI
+          </Text>
+          <Text style={{ color: t.faint, fontSize: 9.5, letterSpacing: 2, fontFamily: fonts.mono }}>
+            DZIENNIK SZTUK WALKI
+          </Text>
+        </View>
       </View>
 
       {MAIN.map((item) => (
@@ -105,8 +133,18 @@ export function Sidebar() {
             borderRadius: radius.md,
           }}
         >
-          <Ionicons name="mic" size={17} color="#FFF" />
-          <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 14 }}>Nagraj trening</Text>
+          <Ionicons name="mic" size={17} color="#F2E9DA" />
+          <Text
+            style={{
+              color: '#F2E9DA',
+              fontFamily: fonts.bodySemi,
+              fontSize: 13,
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+            }}
+          >
+            Nagraj trening
+          </Text>
         </LinearGradient>
       </Pressable>
 

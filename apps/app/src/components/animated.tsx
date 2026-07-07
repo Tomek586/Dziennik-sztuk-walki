@@ -8,7 +8,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { useTheme, radius } from '@/theme';
+import { useTheme, fonts, radius } from '@/theme';
 
 /** Wjazd elementu z dołu z opóźnieniem — do kaskadowych list paneli. */
 export function Rise({
@@ -104,9 +104,9 @@ export function CountUp({
       style={{
         color: color ?? t.text,
         fontSize: size,
-        fontWeight: '800',
+        fontFamily: fonts.displayBlack,
         fontVariant: ['tabular-nums'],
-        letterSpacing: -0.5,
+        letterSpacing: 0.5,
       }}
     >
       {display.toFixed(decimals)}

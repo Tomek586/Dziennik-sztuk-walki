@@ -14,7 +14,7 @@ import {
   StatCard,
 } from '@/components/ui';
 import { CountUp, PressableScale, ProgressBar, Rise } from '@/components/animated';
-import { useTheme, spacing } from '@/theme';
+import { useTheme, fonts, spacing } from '@/theme';
 import { ENV } from '@/lib/env';
 import {
   listAllSessionTechniques,
@@ -110,7 +110,7 @@ export default function Dashboard() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View>
             <Muted>{todayLabel()}</Muted>
-            <Text style={{ color: t.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 }}>
+            <Text style={{ color: t.text, fontSize: 28, fontFamily: fonts.displayBlack, letterSpacing: 0.6 }}>
               Cześć! 🥋
             </Text>
           </View>
@@ -137,7 +137,7 @@ export default function Dashboard() {
       <Rise delay={60}>
         <HeroPanel>
           <Muted>Po treningu?</Muted>
-          <P style={{ fontSize: 17, fontWeight: '700' }}>
+          <P style={{ fontSize: 17, fontFamily: fonts.bodySemi }}>
             Nagraj 60 sekund — AI zapisze techniki i sparingi za Ciebie.
           </P>
           <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' }}>
@@ -171,7 +171,7 @@ export default function Dashboard() {
         <Card>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <H2>Postęp technik</H2>
-            <P onPress={() => router.push('/progress')} style={{ color: t.primary, fontWeight: '700' }}>
+            <P onPress={() => router.push('/progress')} style={{ color: t.primary, fontFamily: fonts.bodySemi }}>
               więcej →
             </P>
           </View>
@@ -199,7 +199,7 @@ export default function Dashboard() {
             <H2>Sparingi</H2>
             <View style={{ flexDirection: 'row', gap: spacing.xl }}>
               <View>
-                <Text style={{ color: t.text, fontSize: 26, fontWeight: '800' }}>
+                <Text style={{ color: t.text, fontSize: 26, fontFamily: fonts.displayBlack }}>
                   {spar.wins}
                   <Text style={{ color: t.faint }}>–</Text>
                   {spar.losses}
@@ -207,7 +207,7 @@ export default function Dashboard() {
                 <Muted>bilans</Muted>
               </View>
               <View>
-                <Text style={{ fontSize: 26, fontWeight: '800' }}>
+                <Text style={{ fontSize: 26, fontFamily: fonts.displayBlack }}>
                   <Text style={{ color: t.success }}>{spar.tapsFor}</Text>
                   <Text style={{ color: t.faint }}>:</Text>
                   <Text style={{ color: t.danger }}>{spar.tapsAgainst}</Text>

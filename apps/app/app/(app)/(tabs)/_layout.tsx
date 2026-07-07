@@ -34,7 +34,7 @@ function RecordButton() {
           borderColor: t.bgAlt,
         }}
       >
-        <Ionicons name="mic" size={26} color="#FFF" />
+        <Ionicons name="mic" size={26} color="#F2E9DA" />
       </LinearGradient>
     </Pressable>
   );

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme, gradients, radius, spacing } from '@/theme';
+import { useTheme, fonts, gradients, radius, spacing } from '@/theme';
 import { PressableScale } from './animated';
 
 /** Ekran z przewijaniem; na szerokim web treść jest wyśrodkowana (max 1080). */
@@ -36,7 +36,7 @@ export function Screen({ children }: { children: ReactNode }) {
 export function H1({ children }: { children: ReactNode }) {
   const t = useTheme();
   return (
-    <Text style={{ color: t.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.6 }}>
+    <Text style={{ color: t.text, fontSize: 30, fontFamily: fonts.displayBlack, letterSpacing: 0.6 }}>
       {children}
     </Text>
   );
@@ -45,7 +45,7 @@ export function H1({ children }: { children: ReactNode }) {
 export function H2({ children }: { children: ReactNode }) {
   const t = useTheme();
   return (
-    <Text style={{ color: t.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.2 }}>
+    <Text style={{ color: t.text, fontSize: 18, fontFamily: fonts.display, letterSpacing: 0.4 }}>
       {children}
     </Text>
   );
@@ -62,7 +62,10 @@ export function P({
 }) {
   const t = useTheme();
   return (
-    <Text onPress={onPress} style={[{ color: t.text, fontSize: 15, lineHeight: 22 }, style]}>
+    <Text
+      onPress={onPress}
+      style={[{ color: t.text, fontSize: 15, lineHeight: 22, fontFamily: fonts.body }, style]}
+    >
       {children}
     </Text>
   );
@@ -74,10 +77,10 @@ export function Muted({ children }: { children: ReactNode }) {
     <Text
       style={{
         color: t.muted,
-        fontSize: 12.5,
-        letterSpacing: 0.4,
+        fontSize: 11,
+        letterSpacing: 2.4,
         textTransform: 'uppercase',
-        fontWeight: '600',
+        fontFamily: fonts.mono,
       }}
     >
       {children}
@@ -157,14 +160,15 @@ export function Button({
   const inner = (
     <View style={{ paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center' }}>
       {loading ? (
-        <ActivityIndicator color={variant === 'ghost' ? t.text : '#FFFFFF'} />
+        <ActivityIndicator color={variant === 'ghost' ? t.text : '#F2E9DA'} />
       ) : (
         <Text
           style={{
-            color: variant === 'ghost' ? t.text : '#FFFFFF',
-            fontWeight: '700',
-            fontSize: 15.5,
-            letterSpacing: 0.2,
+            color: variant === 'ghost' ? t.text : '#F2E9DA',
+            fontFamily: fonts.bodySemi,
+            fontSize: 15,
+            letterSpacing: 1.2,
+            textTransform: 'uppercase',
           }}
         >
           {title}
@@ -257,7 +261,7 @@ export function Chip({
           end={{ x: 1, y: 0 }}
           style={{ paddingHorizontal: 15, paddingVertical: 9, borderRadius: radius.full }}
         >
-          <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13.5 }}>{label}</Text>
+          <Text style={{ color: '#F2E9DA', fontFamily: fonts.bodySemi, fontSize: 13.5 }}>{label}</Text>
         </LinearGradient>
       </PressableScale>
     );
@@ -274,7 +278,7 @@ export function Chip({
           backgroundColor: t.card,
         }}
       >
-        <Text style={{ color: t.text, fontWeight: '600', fontSize: 13.5 }}>{label}</Text>
+        <Text style={{ color: t.text, fontFamily: fonts.bodyMedium, fontSize: 13.5 }}>{label}</Text>
       </View>
     </PressableScale>
   );
@@ -299,7 +303,9 @@ export function Banner({
         padding: spacing.md,
       }}
     >
-      <Text style={{ color: t.text, fontSize: 13.5, lineHeight: 20 }}>{children}</Text>
+      <Text style={{ color: t.text, fontSize: 13.5, lineHeight: 20, fontFamily: fonts.body }}>
+        {children}
+      </Text>
     </View>
   );
 }
@@ -351,8 +357,8 @@ export function LinkRow({ label, onPress }: { label: string; onPress: () => void
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Text style={{ color: t.text, fontSize: 15, fontWeight: '600' }}>{label}</Text>
-      <Text style={{ color: t.primary, fontSize: 16, fontWeight: '800' }}>→</Text>
+      <Text style={{ color: t.text, fontSize: 15, fontFamily: fonts.bodyMedium }}>{label}</Text>
+      <Text style={{ color: t.primary, fontSize: 16, fontFamily: fonts.monoBold }}>→</Text>
     </Pressable>
   );
 }

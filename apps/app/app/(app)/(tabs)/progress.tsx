@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { MASTERY_LABELS_PL, type MasteryLevel } from '@dsw/core';
 import { Card, H1, H2, LinkRow, Muted, P, Screen, StatCard } from '@/components/ui';
 import { CountUp, PressableScale, ProgressBar, Rise } from '@/components/animated';
-import { useTheme, spacing } from '@/theme';
+import { useTheme, fonts, spacing } from '@/theme';
 import { deriveProgress, type TechniqueProgress } from '@/features/progress/derive';
 import { listTechniques, type Technique } from '@/features/techniques/repository';
 import { listAllSparringRounds, listSessions } from '@/features/sessions/repository';
@@ -130,10 +130,10 @@ export default function Progress() {
                   }}
                 >
                   <View style={{ flex: 1, paddingRight: 10 }}>
-                    <P style={{ fontWeight: '600' }}>{technique.name_pl}</P>
+                    <P style={{ fontFamily: fonts.bodyMedium }}>{technique.name_pl}</P>
                     <Muted>{`${progress.practiceCount}× ćwiczona`}</Muted>
                   </View>
-                  <Text style={{ color: levelColors[progress.level], fontWeight: '800', fontSize: 15 }}>
+                  <Text style={{ color: levelColors[progress.level], fontFamily: fonts.monoBold, fontSize: 15 }}>
                     {progress.level}/4
                   </Text>
                 </View>
@@ -146,7 +146,7 @@ export default function Progress() {
       <Rise delay={240}>
         <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' }}>
           <StatCard label="Tapy za / przeciw">
-            <Text style={{ fontSize: 28, fontWeight: '800' }}>
+            <Text style={{ fontSize: 28, fontFamily: fonts.displayBlack }}>
               <Text style={{ color: t.success }}>{spar.tapsFor}</Text>
               <Text style={{ color: t.faint }}>:</Text>
               <Text style={{ color: t.danger }}>{spar.tapsAgainst}</Text>

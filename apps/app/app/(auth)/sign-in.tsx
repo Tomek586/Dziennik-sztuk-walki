@@ -5,7 +5,7 @@ import { Banner, Button, HeroPanel, Muted, Screen, TextField } from '@/component
 import { Rise } from '@/components/animated';
 import { useAuth } from '@/features/auth/auth-context';
 import { ENV } from '@/lib/env';
-import { useTheme } from '@/theme';
+import { useTheme, fonts } from '@/theme';
 
 export default function SignIn() {
   const { signIn } = useAuth();
@@ -29,10 +29,27 @@ export default function SignIn() {
     <Screen>
       <View style={{ maxWidth: 440, width: '100%', alignSelf: 'center', gap: 16, paddingTop: 40 }}>
         <Rise>
-          <View style={{ alignItems: 'center', gap: 4, paddingBottom: 8 }}>
-            <Text style={{ fontSize: 44 }}>🥋</Text>
-            <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>
-              DZIENNIK<Text style={{ color: t.primary }}> SW</Text>
+          <View style={{ alignItems: 'center', gap: 10, paddingBottom: 8 }}>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 8,
+                backgroundColor: t.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                transform: [{ rotate: '-3deg' }],
+                shadowColor: t.primary,
+                shadowOpacity: 0.35,
+                shadowRadius: 16,
+                shadowOffset: { width: 0, height: 5 },
+                elevation: 8,
+              }}
+            >
+              <Text style={{ color: '#F2E9DA', fontSize: 30, fontFamily: fonts.display }}>畳</Text>
+            </View>
+            <Text style={{ color: t.text, fontSize: 26, fontFamily: fonts.display, letterSpacing: 7 }}>
+              TATAMI
             </Text>
             <Muted>Twój progres w sztukach walki</Muted>
           </View>
