@@ -15,6 +15,8 @@ export interface ExtractedTechnique {
   name_pl: string;
   name_en: string | null;
   raw_text: string;
+  /** kategoria zgadnięta przez AI (duszenie/dźwignia/uderzenie/…) — dla technik spoza słownika */
+  category?: string | null;
   outcome: TechniqueOutcome | null;
   went_well: string | null;
   went_bad: string | null;
@@ -24,22 +26,36 @@ export interface ExtractedTechnique {
 
 export interface ExtractedSparring {
   rounds?: number | null;
+  round_no?: number | null;
+  partner?: string | null;
   result?: string | null;
   taps_for?: number | null;
   taps_against?: number | null;
+  what_worked?: string | null;
+  what_failed?: string | null;
   notes?: string | null;
+}
+
+/** Sekcja pełnego podsumowania notatki (rozgrzewka/technika/sparingi/…). */
+export interface ExtractedSection {
+  title: string;
+  content: string;
 }
 
 export interface ExtractionRaw {
   session: {
     session_type?: string | null;
+    discipline_guess?: string | null;
     duration_min?: number | null;
     intensity?: number | null;
     feeling?: number | null;
     summary?: string;
+    sections?: ExtractedSection[];
   };
   techniques: ExtractedTechnique[];
   sparring: ExtractedSparring[];
+  insights?: string[];
+  goal_suggestions?: string[];
 }
 
 const T_EXT_LOCAL = 'ai_extractions_local';

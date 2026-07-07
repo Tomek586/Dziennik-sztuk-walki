@@ -83,6 +83,18 @@ export async function createCustomTechnique(
     .select('*')
     .single();
   if (error) throw new Error(error.message);
+  // alias = nazwa PL, żeby kolejne notatki głosowe dopasowywały tę technikę
+  // (best-effort: wymaga polityki z migracji 0007)
+  try {
+    await supabase.from('technique_aliases').insert({
+      technique_id: (data as Technique).id,
+      alias: input.namePl,
+      lang: 'pl',
+      source: 'user',
+    });
+  } catch {
+    // brak polityki/offline — technika działa też bez aliasu
+  }
   await syncTechniqueDictionary();
   return data as Technique;
 }

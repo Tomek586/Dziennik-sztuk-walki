@@ -25,12 +25,13 @@ export interface SessionTechniqueDraft {
 
 export type SparringRow = Tables<'sparring_rounds'>;
 
-/** Podsumowanie sparingów w sesji. */
+/** Podsumowanie sparingów w sesji (zbiorczo lub per runda). */
 export interface SparringDraft {
   rounds: number | null;
   result: string | null;
   tapsFor: number;
   tapsAgainst: number;
+  partnerLabel?: string | null;
   notes: string | null;
 }
 
@@ -155,7 +156,7 @@ export async function createSparringRound(
     user_id: userId,
     round_no: draft.rounds,
     duration_min: null,
-    partner_label: null,
+    partner_label: draft.partnerLabel ?? null,
     partner_level: null,
     result: draft.result,
     taps_for: draft.tapsFor,
@@ -174,6 +175,7 @@ export async function createSparringRound(
     session_id: sessionId,
     user_id: userId,
     round_no: draft.rounds,
+    partner_label: draft.partnerLabel ?? null,
     result: draft.result,
     taps_for: draft.tapsFor,
     taps_against: draft.tapsAgainst,

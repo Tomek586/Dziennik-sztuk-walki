@@ -119,7 +119,7 @@ export default function SessionDetail() {
 
           {session.notes ? (
             <Card>
-              <Muted>Podsumowanie (AI)</Muted>
+              <Muted>Podsumowanie treningu</Muted>
               <P>{session.notes}</P>
             </Card>
           ) : null}
@@ -164,13 +164,14 @@ export default function SessionDetail() {
                   <P>
                     {[
                       s.round_no ? `${s.round_no} rund` : null,
+                      s.partner_label ? `z: ${s.partner_label}` : null,
                       s.result,
                       `tapy ${s.taps_for}:${s.taps_against}`,
                     ]
                       .filter(Boolean)
                       .join(' · ')}
                   </P>
-                  {s.notes ? <Muted>{s.notes}</Muted> : null}
+                  {s.notes ? <P style={{ color: t.muted, fontSize: 13 }}>{s.notes}</P> : null}
                 </Card>
               ))}
             </>

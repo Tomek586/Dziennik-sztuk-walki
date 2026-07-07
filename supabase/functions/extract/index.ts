@@ -56,6 +56,7 @@ function mapTechniques(items: any[], aliases: Alias[], techById: Map<string, Tec
       name_pl: t?.name_pl ?? src,
       name_en: t?.name_en ?? null,
       raw_text: src,
+      category: it.category ?? null,
       outcome: it.outcome ?? null,
       went_well: it.went_well ?? null,
       went_bad: it.went_bad ?? null,
@@ -77,13 +78,23 @@ function scanTranscript(transcript: string, aliases: Alias[]) {
 }
 
 async function groqExtract(key: string, transcript: string) {
-  const sys = `Jesteś asystentem, który z notatki po treningu sztuk walki wyciąga ustrukturyzowane dane.
+  const sys = `Jesteś asystentem, który z notatki po treningu sztuk walki wyciąga KOMPLETNE, ustrukturyzowane dane.
+NAJWAŻNIEJSZA ZASADA: niczego nie pomijaj — każda informacja z notatki musi trafić do któregoś pola. Użytkownik opowiada o całym treningu i wszystko ma zostać zapisane.
 Zwróć WYŁĄCZNIE poprawny JSON o kształcie:
-{"session":{"session_type":string|null,"duration_min":number|null,"intensity":number|null,"feeling":number|null,"summary":string},
-"techniques":[{"raw_text":string,"outcome":"learned"|"drilled"|"worked_in_sparring"|"failed"|null,"went_well":string|null,"went_bad":string|null,"confidence":number}],
-"sparring":[{"rounds":number|null,"result":"win"|"loss"|"draw"|null,"taps_for":number|null,"taps_against":number|null,"notes":string|null}]}
-Zasady: nie zgaduj liczb, których nie ma w tekście; raw_text = nazwa techniki dokładnie jak w notatce;
-intensity 1-10, feeling 1-5; jeśli czegoś brak, użyj null. Odpowiadaj po polsku w polach tekstowych.`;
+{"session":{"session_type":string|null,"discipline_guess":"bjj"|"grappling"|"mma"|"boks"|"muay thai"|"kickboxing"|null,"duration_min":number|null,"intensity":number|null,"feeling":number|null,"summary":string,
+ "sections":[{"title":string,"content":string}]},
+"techniques":[{"raw_text":string,"category":"duszenie"|"dźwignia"|"obalenie"|"przejście"|"pozycja"|"uderzenie"|"kopnięcie"|"obrona"|"inne"|null,"outcome":"learned"|"drilled"|"worked_in_sparring"|"failed"|null,"went_well":string|null,"went_bad":string|null,"confidence":number}],
+"sparring":[{"rounds":number|null,"round_no":number|null,"partner":string|null,"result":"win"|"loss"|"draw"|null,"taps_for":number|null,"taps_against":number|null,"what_worked":string|null,"what_failed":string|null,"notes":string|null}],
+"insights":[string],
+"goal_suggestions":[string]}
+Zasady:
+- sections: rozbij CAŁĄ treść notatki na sekcje tematyczne (np. "Rozgrzewka", "Technika", "Sparingi", "Kondycja", "Samopoczucie", "Uwagi"). Zachowaj WSZYSTKIE szczegóły i konkrety — parafrazuj porządkując, ale NIE skracaj. Twórz tylko sekcje, o których faktycznie coś powiedziano. summary = 1-2 zdania esencji.
+- techniques: wypisz KAŻDĄ wspomnianą technikę/kombinację, także slangowe i nietypowe nazwy, których nie znasz. raw_text = nazwa dokładnie jak w notatce. went_well/went_bad = co konkretnie działało / nie działało przy tej technice.
+- sparring: jeśli rundy opisano osobno — osobny obiekt na każdą rundę (ustaw round_no i partner, jeśli podano). Jeśli zbiorczo — jeden obiekt z łączną liczbą rund w polu rounds. what_worked/what_failed = co wchodziło, co nie działało.
+- insights: wnioski i obserwacje użytkownika o własnym rozwoju (np. "muszę popracować nad obroną gilotyny", "lepiej oddycham w 3. rundzie").
+- goal_suggestions: 0-3 krótkie, konkretne propozycje celów treningowych wynikające WPROST z notatki.
+- nie zgaduj liczb, których nie ma w tekście; intensity 1-10, feeling 1-5; jeśli czegoś brak, użyj null.
+- wszystkie pola tekstowe po polsku.`;
   const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -103,7 +114,16 @@ intensity 1-10, feeling 1-5; jeśli czegoś brak, użyj null. Odpowiadaj po pols
   try {
     return JSON.parse(content);
   } catch {
-    return { session: { summary: transcript.slice(0, 240) }, techniques: [], sparring: [] };
+    return {
+      session: {
+        summary: transcript.slice(0, 240),
+        sections: [{ title: 'Notatka', content: transcript }],
+      },
+      techniques: [],
+      sparring: [],
+      insights: [],
+      goal_suggestions: [],
+    };
   }
 }
 
@@ -142,9 +162,14 @@ Deno.serve(async (req) => {
       structured = await groqExtract(groqKey, transcript);
     } else {
       structured = {
-        session: { summary: transcript.slice(0, 240) },
+        session: {
+          summary: transcript.slice(0, 240),
+          sections: [{ title: 'Notatka', content: transcript }],
+        },
         techniques: scanTranscript(transcript, aliases),
         sparring: [],
+        insights: [],
+        goal_suggestions: [],
       };
     }
 
@@ -153,6 +178,8 @@ Deno.serve(async (req) => {
       session: structured.session ?? {},
       techniques: mapped,
       sparring: structured.sparring ?? [],
+      insights: structured.insights ?? [],
+      goal_suggestions: structured.goal_suggestions ?? [],
     };
 
     const svc = createClient(
