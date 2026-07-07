@@ -16,6 +16,7 @@ const MAIN: NavItem[] = [
   { href: '/journal', label: 'Dziennik', icon: 'book' },
   { href: '/progress', label: 'Progres', icon: 'stats-chart' },
   { href: '/techniques', label: 'Techniki', icon: 'school', match: (p) => p === '/techniques' },
+  { href: '/news', label: 'Newsy', icon: 'newspaper' },
 ];
 
 const SECONDARY: NavItem[] = [

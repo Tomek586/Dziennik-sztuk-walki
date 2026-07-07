@@ -231,6 +231,25 @@ export default function Dashboard() {
         </Rise>
       )}
 
+      {/* newsy */}
+      <Rise delay={280}>
+        <PressableScale onPress={() => router.push('/news')}>
+          <Card>
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <P style={{ fontFamily: fonts.bodySemi, fontSize: 15.5 }}>
+                  📰 Newsy ze świata sztuk walki
+                </P>
+                <Muted>MMA · BJJ · boks — po polsku</Muted>
+              </View>
+              <P style={{ color: t.primary, fontSize: 16, fontFamily: fonts.monoBold }}>→</P>
+            </View>
+          </Card>
+        </PressableScale>
+      </Rise>
+
       {/* ostatnie treningi */}
       <Rise delay={300}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>

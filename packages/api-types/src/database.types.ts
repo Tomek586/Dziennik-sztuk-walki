@@ -469,6 +469,42 @@ export interface Database {
         };
         Relationships: [];
       };
+      news_items: {
+        Row: {
+          id: string;
+          url: string;
+          title: string;
+          summary: string | null;
+          source: string;
+          category: string;
+          image_url: string | null;
+          published_at: string | null;
+          fetched_at: string;
+        };
+        Insert: {
+          id?: string;
+          url: string;
+          title: string;
+          summary?: string | null;
+          source: string;
+          category?: string;
+          image_url?: string | null;
+          published_at?: string | null;
+          fetched_at?: string;
+        };
+        Update: {
+          id?: string;
+          url?: string;
+          title?: string;
+          summary?: string | null;
+          source?: string;
+          category?: string;
+          image_url?: string | null;
+          published_at?: string | null;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
       material_sources: {
         Row: {
           id: string;
