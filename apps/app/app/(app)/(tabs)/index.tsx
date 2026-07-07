@@ -231,10 +231,10 @@ export default function Dashboard() {
         </Rise>
       )}
 
-      {/* newsy */}
+      {/* newsy + mapa klubów */}
       <Rise delay={280}>
-        <PressableScale onPress={() => router.push('/news')}>
-          <Card>
+        <Card>
+          <PressableScale onPress={() => router.push('/news')}>
             <View
               style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
             >
@@ -246,8 +246,22 @@ export default function Dashboard() {
               </View>
               <P style={{ color: t.primary, fontSize: 16, fontFamily: fonts.monoBold }}>→</P>
             </View>
-          </Card>
-        </PressableScale>
+          </PressableScale>
+          <View style={{ height: 1, backgroundColor: t.border, marginVertical: 6 }} />
+          <PressableScale onPress={() => router.push('/clubs')}>
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <P style={{ fontFamily: fonts.bodySemi, fontSize: 15.5 }}>
+                  🗾 Gdzie trenować — mapa klubów
+                </P>
+                <Muted>Kluby sztuk walki w całej Polsce</Muted>
+              </View>
+              <P style={{ color: t.primary, fontSize: 16, fontFamily: fonts.monoBold }}>→</P>
+            </View>
+          </PressableScale>
+        </Card>
       </Rise>
 
       {/* ostatnie treningi */}

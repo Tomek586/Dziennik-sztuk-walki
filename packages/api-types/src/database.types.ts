@@ -469,6 +469,51 @@ export interface Database {
         };
         Relationships: [];
       };
+      clubs: {
+        Row: {
+          id: string;
+          osm_key: string;
+          name: string;
+          sports: string;
+          categories: string;
+          lat: number;
+          lon: number;
+          city: string | null;
+          street: string | null;
+          website: string | null;
+          phone: string | null;
+          fetched_at: string;
+        };
+        Insert: {
+          id?: string;
+          osm_key: string;
+          name: string;
+          sports: string;
+          categories: string;
+          lat: number;
+          lon: number;
+          city?: string | null;
+          street?: string | null;
+          website?: string | null;
+          phone?: string | null;
+          fetched_at?: string;
+        };
+        Update: {
+          id?: string;
+          osm_key?: string;
+          name?: string;
+          sports?: string;
+          categories?: string;
+          lat?: number;
+          lon?: number;
+          city?: string | null;
+          street?: string | null;
+          website?: string | null;
+          phone?: string | null;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
       news_items: {
         Row: {
           id: string;
