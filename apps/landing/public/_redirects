@@ -1,0 +1,5 @@
+# Jeden projekt Netlify: landing w korzeniu, aplikacja pod /app.
+# Expo Router (SPA) — każda ścieżka /app/* serwuje index.html aplikacji.
+/app/*  /app/index.html  200
+# fallback landingu (pojedyncza strona)
+/*      /index.html      200

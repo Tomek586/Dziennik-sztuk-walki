@@ -4,7 +4,10 @@ import { InkSpine } from '@/components/InkSpine';
 import { BrushUnderline } from '@/components/BrushUnderline';
 import { initReveal, initSmoothScroll } from '@/scroll';
 
-const APP_URL = import.meta.env.VITE_APP_URL ?? 'http://localhost:8081';
+// Produkcja: aplikacja żyje pod /app na tym samym adresie (jeden projekt
+// Netlify). W dev apka chodzi na osobnym porcie Expo.
+const APP_URL =
+  import.meta.env.VITE_APP_URL ?? (import.meta.env.DEV ? 'http://localhost:8081' : '/app');
 
 function Hanko() {
   return <span className="hanko">畳</span>;

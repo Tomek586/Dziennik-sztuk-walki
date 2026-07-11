@@ -16,6 +16,7 @@
     "app": "pnpm --filter @dsw/app",
     "app:web": "pnpm --filter @dsw/app web",
     "landing": "pnpm --filter @dsw/landing dev",
+    "web:build": "pnpm --filter @dsw/landing build && pnpm --filter @dsw/app exec expo export -p web && node scripts/merge-web.mjs",
     "db:types": "supabase gen types typescript --local > packages/api-types/src/database.types.ts"
   },
   "devDependencies": {
