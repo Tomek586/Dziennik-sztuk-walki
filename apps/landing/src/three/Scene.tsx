@@ -13,7 +13,8 @@ const PAPER = '#f2e9da';
 function CameraRig() {
   const { camera, pointer } = useThree();
   useFrame(() => {
-    const p = scrollState.progress;
+    // wygładzony postęp — kamera nie skacze przy szybkim scrollu
+    const p = scrollState.smooth;
     const targetX = Math.sin(p * Math.PI * 1.2) * 1.1 + pointer.x * 0.25;
     const targetY = 1.35 - p * 0.9 + pointer.y * 0.15;
     const targetZ = 6.4 - Math.sin(p * Math.PI) * 1.2;

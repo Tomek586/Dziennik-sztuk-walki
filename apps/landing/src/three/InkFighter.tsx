@@ -48,6 +48,7 @@ export function InkFighter() {
 
   const groupRef = useRef<THREE.Group>(null);
   const activeRef = useRef<ClipKey>('idle');
+  const lastSwitchRef = useRef(0);
 
   // tuszowa sylwetka: podmień materiały wszystkich meshy
   useEffect(() => {
@@ -77,24 +78,28 @@ export function InkFighter() {
     return { mixer: mx, actions: acts };
   }, [base, jabCross, roundhouse, takedown, mmaKick, victory]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     mixer.update(delta);
 
-    const p = scrollState.progress;
+    // wygładzony postęp + minimalny odstęp między zmianami klipu:
+    // szybki scroll nie przerzuca wojownika przez kilka ruchów naraz
+    const p = scrollState.smooth;
     const next = (SEGMENTS.find((s) => p < s.until) ?? SEGMENTS[SEGMENTS.length - 1]!).clip;
-    if (next !== activeRef.current) {
+    const now = state.clock.elapsedTime;
+    if (next !== activeRef.current && now - lastSwitchRef.current > 0.55) {
       const from = actions[activeRef.current];
       const to = actions[next];
       if (to) {
-        to.reset().fadeIn(0.35).play();
-        from?.fadeOut(0.35);
+        to.reset().fadeIn(0.5).play();
+        from?.fadeOut(0.5);
         activeRef.current = next;
+        lastSwitchRef.current = now;
       }
     }
 
-    // delikatny obrót całej postaci w rytm scrolla
+    // delikatny obrót całej postaci w rytm scrolla (już wygładzonego)
     const g = groupRef.current;
-    if (g) g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, -0.4 + p * 1.6, 0.06);
+    if (g) g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, -0.4 + p * 1.6, 0.05);
   });
 
   return (
