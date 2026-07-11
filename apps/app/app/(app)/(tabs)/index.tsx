@@ -29,6 +29,11 @@ import {
 } from '@/features/disciplines/repository';
 import { syncTechniqueDictionary } from '@/features/techniques/repository';
 import { deriveProgress } from '@/features/progress/derive';
+import {
+  generateWeeklySummary,
+  getCachedWeeklySummary,
+  type WeeklySummary,
+} from '@/features/summary/repository';
 import { getSyncState, synchronize } from '@/offline/sync';
 
 export default function Dashboard() {
@@ -41,6 +46,19 @@ export default function Dashboard() {
   const [progressStat, setProgressStat] = useState({ practiced: 0, working: 0 });
   const [activity, setActivity] = useState({ week: 0, month: 0, streak: 0 });
   const [spar, setSpar] = useState({ tapsFor: 0, tapsAgainst: 0, wins: 0, losses: 0 });
+  const [summary, setSummary] = useState<WeeklySummary | null>(null);
+  const [summaryBusy, setSummaryBusy] = useState(false);
+
+  const loadSummary = useCallback(async (force: boolean) => {
+    setSummaryBusy(true);
+    try {
+      setSummary(await generateWeeklySummary(force));
+    } catch {
+      // funkcja niewdrożona / offline — zostaje lokalna kopia
+    } finally {
+      setSummaryBusy(false);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     const [list, state, ds, sts, progress, spars] = await Promise.all([
@@ -87,6 +105,9 @@ export default function Dashboard() {
   useFocusEffect(
     useCallback(() => {
       void refresh();
+      void getCachedWeeklySummary().then((s) => {
+        if (s) setSummary((cur) => cur ?? s);
+      });
       (async () => {
         if (!ENV.isConfigured) return;
         try {
@@ -261,6 +282,60 @@ export default function Dashboard() {
               <P style={{ color: t.primary, fontSize: 16, fontFamily: fonts.monoBold }}>→</P>
             </View>
           </PressableScale>
+        </Card>
+      </Rise>
+
+      {/* podsumowanie tygodnia (AI) */}
+      <Rise delay={290}>
+        <Card>
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+          >
+            <Muted>Podsumowanie tygodnia (AI)</Muted>
+            <P
+              onPress={() => void loadSummary(true)}
+              style={{ color: t.primary, fontFamily: fonts.bodySemi, fontSize: 13 }}
+            >
+              {summaryBusy ? 'generuję…' : summary ? 'odśwież' : ''}
+            </P>
+          </View>
+          {summary ? (
+            <>
+              <P>{summary.summary}</P>
+              {summary.highlights.length > 0 && (
+                <View style={{ gap: 2 }}>
+                  {summary.highlights.map((h, i) => (
+                    <P key={i} style={{ color: t.muted, fontSize: 13.5 }}>
+                      ★ {h}
+                    </P>
+                  ))}
+                </View>
+              )}
+              {summary.focus.length > 0 && (
+                <View style={{ gap: 2 }}>
+                  <Muted>Na kolejny tydzień</Muted>
+                  {summary.focus.map((f, i) => (
+                    <P key={i} style={{ color: t.accent, fontSize: 13.5 }}>
+                      → {f}
+                    </P>
+                  ))}
+                </View>
+              )}
+            </>
+          ) : (
+            <>
+              <P style={{ color: t.muted }}>
+                AI podsumuje Twój tydzień treningowy: co ćwiczyłeś, co się poprawiło i na czym się
+                skupić.
+              </P>
+              <Button
+                title="Generuj podsumowanie"
+                variant="ghost"
+                onPress={() => void loadSummary(false)}
+                loading={summaryBusy}
+              />
+            </>
+          )}
         </Card>
       </Rise>
 
