@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Banner, Button, H1, Muted, Screen, TextField } from '@/components/ui';
 import { runExtract } from '@/features/ai/repository';
 import { useAuth } from '@/features/auth/auth-context';
@@ -8,7 +8,10 @@ import { ENV } from '@/lib/env';
 export default function Analyze() {
   const router = useRouter();
   const { userId } = useAuth();
-  const [text, setText] = useState('');
+  // ścieżka głosowa przekazuje transkrypcję do sprawdzenia + id notatki
+  const params = useLocalSearchParams<{ voiceNoteId?: string; text?: string }>();
+  const fromVoice = typeof params.voiceNoteId === 'string' && params.voiceNoteId.length > 0;
+  const [text, setText] = useState(typeof params.text === 'string' ? params.text : '');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +23,11 @@ export default function Analyze() {
     }
     setLoading(true);
     try {
-      const { extractionId } = await runExtract({ text, userId: userId ?? undefined });
+      const { extractionId } = await runExtract({
+        voiceNoteId: fromVoice ? params.voiceNoteId : undefined,
+        text,
+        userId: userId ?? undefined,
+      });
       router.replace({ pathname: '/review', params: { id: extractionId } });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -31,16 +38,17 @@ export default function Analyze() {
 
   return (
     <Screen>
-      <H1>Opisz trening</H1>
+      <H1>{fromVoice ? 'Sprawdź transkrypcję' : 'Opisz trening'}</H1>
       <Muted>
-        Wpisz lub wklej relację z treningu — AI wyciągnie techniki i przygotuje trening do zapisu.
-        Działa też bez kluczy (dopasowanie po słowach kluczowych ze słownika).
+        {fromVoice
+          ? 'To zapis Twojej głosówki. Popraw przekręcone nazwy technik, zanim AI przeanalizuje — nagranie zostaje do odsłuchania w szczegółach treningu.'
+          : 'Wpisz lub wklej relację z treningu — AI wyciągnie techniki i przygotuje trening do zapisu. Działa też bez kluczy (dopasowanie po słowach kluczowych ze słownika).'}
       </Muted>
       {!ENV.isConfigured && (
         <Banner tone="warn">Supabase nieskonfigurowany — ta funkcja wymaga połączenia.</Banner>
       )}
       <TextField
-        label="Relacja z treningu"
+        label={fromVoice ? 'Transkrypcja (możesz edytować)' : 'Relacja z treningu'}
         value={text}
         onChangeText={setText}
         multiline

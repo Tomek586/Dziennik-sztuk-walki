@@ -1,9 +1,11 @@
 import type { TechniqueOutcome, TrainingSessionInput } from '@dsw/core';
 import { supabase } from '@/lib/supabase';
-import { newId } from '@/lib/id';
+import { newId, nowIso } from '@/lib/id';
 import * as collection from '@/offline/collection';
 import { enqueue } from '@/offline/outbox';
 import {
+  addTechniquesToSession,
+  appendSessionNotes,
   createSession,
   createSparringRound,
   type SessionTechniqueDraft,
@@ -127,10 +129,22 @@ export async function runExtract(input: {
     if (!ins.error) voiceNoteId = id;
   }
 
+  // tekst wysyłamy zawsze, gdy jest — to pozwala analizować POPRAWIONĄ
+  // transkrypcję głosówki (funkcja extract preferuje body.text)
   const res = await invoke<{ extraction_id: string; raw: ExtractionRaw }>('extract', {
     voice_note_id: voiceNoteId ?? undefined,
-    text: voiceNoteId ? undefined : input.text,
+    text: input.text,
   });
+
+  // edytowana transkrypcja zastępuje oryginalną w notatce głosowej
+  if (input.voiceNoteId && input.text && input.text !== input.transcript) {
+    try {
+      await supabase.from('voice_notes').update({ transcript: input.text }).eq('id', input.voiceNoteId);
+    } catch {
+      // best-effort — oryginał zostaje
+    }
+    transcript = input.text;
+  }
   await collection.upsertOne<ExtractionCache>(T_EXT_LOCAL, {
     id: res.extraction_id,
     raw: res.raw,
@@ -146,11 +160,68 @@ export async function getExtractionTranscript(id: string): Promise<string | null
   return local?.transcript ?? null;
 }
 
+/** Ścieżka audio nagrania powiązanego z ekstrakcją (odtwarzanie w przeglądzie). */
+export async function getExtractionAudioPath(id: string): Promise<string | null> {
+  const local = await collection.getById<ExtractionCache>(T_EXT_LOCAL, id);
+  if (!local?.voiceNoteId) return null;
+  const note = await collection.getById<{ id: string; storage_path?: string | null }>(
+    T_VOICE,
+    local.voiceNoteId,
+  );
+  if (note?.storage_path) return note.storage_path;
+  const { data } = await supabase
+    .from('voice_notes')
+    .select('storage_path')
+    .eq('id', local.voiceNoteId)
+    .maybeSingle();
+  return data?.storage_path ?? null;
+}
+
 export async function getExtraction(id: string): Promise<ExtractionRaw | null> {
   const local = await collection.getById<ExtractionCache>(T_EXT_LOCAL, id);
   if (local) return local.raw;
   const { data } = await supabase.from('ai_extractions').select('raw').eq('id', id).maybeSingle();
   return (data?.raw as ExtractionRaw | undefined) ?? null;
+}
+
+/** Wiąże notatkę źródłową (głosową/tekstową) z treningiem — lokalnie + outbox. */
+async function linkVoiceNote(
+  userId: string,
+  cached: ExtractionCache | undefined,
+  sessionId: string,
+  ts: { created_at: string; updated_at: string },
+): Promise<void> {
+  if (!cached?.voiceNoteId) return;
+  const existing = await collection.getById<{ id: string } & Record<string, unknown>>(
+    T_VOICE,
+    cached.voiceNoteId,
+  );
+  await collection.upsertOne(T_VOICE, {
+    id: cached.voiceNoteId,
+    user_id: userId,
+    transcript: cached.transcript ?? null,
+    storage_path: null,
+    status: 'extracted',
+    duration_s: null,
+    lang: 'pl',
+    error: null,
+    created_at: ts.created_at,
+    updated_at: ts.updated_at,
+    version: 1,
+    deleted_at: null,
+    ...(existing ?? {}),
+    session_id: sessionId,
+  });
+  await enqueue(T_VOICE, 'update', cached.voiceNoteId, { session_id: sessionId });
+}
+
+async function markExtractionApplied(extractionId: string): Promise<void> {
+  try {
+    await supabase.from('ai_extractions').update({ status: 'applied' }).eq('id', extractionId);
+  } catch {
+    // best-effort — offline/limit; nie blokuje zapisu
+  }
+  await collection.removeOne(T_EXT_LOCAL, extractionId);
 }
 
 /** Zapis zaakceptowanej ekstrakcji jako trening + techniki + sparingi. */
@@ -164,39 +235,28 @@ export async function applyExtraction(
   const session = await createSession(userId, sessionInput, techniques);
   for (const s of sparring) await createSparringRound(userId, session.id, s);
 
-  // Powiąż notatkę źródłową (głosową/tekstową) z utworzonym treningiem —
-  // lokalnie od razu (podgląd offline) + przez outbox na serwer.
   const cached = await collection.getById<ExtractionCache>(T_EXT_LOCAL, extractionId);
-  if (cached?.voiceNoteId) {
-    const existing = await collection.getById<{ id: string } & Record<string, unknown>>(
-      T_VOICE,
-      cached.voiceNoteId,
-    );
-    await collection.upsertOne(T_VOICE, {
-      id: cached.voiceNoteId,
-      user_id: userId,
-      transcript: cached.transcript ?? null,
-      storage_path: null,
-      status: 'extracted',
-      duration_s: null,
-      lang: 'pl',
-      error: null,
-      created_at: session.created_at,
-      updated_at: session.updated_at,
-      version: 1,
-      deleted_at: null,
-      ...(existing ?? {}),
-      session_id: session.id,
-    });
-    await enqueue(T_VOICE, 'update', cached.voiceNoteId, { session_id: session.id });
-  }
+  await linkVoiceNote(userId, cached, session.id, session);
+  await markExtractionApplied(extractionId);
+}
 
-  try {
-    await supabase.from('ai_extractions').update({ status: 'applied' }).eq('id', extractionId);
-  } catch {
-    // best-effort — offline/limit; nie blokuje zapisu
-  }
-  await collection.removeOne(T_EXT_LOCAL, extractionId);
+/** Doczepienie ekstrakcji do ISTNIEJĄCEGO treningu (np. głosówka dzień później). */
+export async function applyExtractionToExisting(
+  userId: string,
+  extractionId: string,
+  sessionId: string,
+  techniques: SessionTechniqueDraft[],
+  sparring: SparringDraft[],
+  notesAppend: string | null,
+): Promise<void> {
+  await addTechniquesToSession(userId, sessionId, techniques);
+  for (const s of sparring) await createSparringRound(userId, sessionId, s);
+  if (notesAppend) await appendSessionNotes(sessionId, notesAppend);
+
+  const now = nowIso();
+  const cached = await collection.getById<ExtractionCache>(T_EXT_LOCAL, extractionId);
+  await linkVoiceNote(userId, cached, sessionId, { created_at: now, updated_at: now });
+  await markExtractionApplied(extractionId);
 }
 
 /** Notatka źródłowa treningu (transkrypcja + ewentualne audio). */

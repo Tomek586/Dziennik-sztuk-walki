@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import {
   OUTCOME_LABELS_PL,
   TECHNIQUE_OUTCOMES,
@@ -13,11 +14,15 @@ import { Banner, Button, Card, Chip, H1, H2, Muted, P, Screen, TextField } from 
 import { useAuth } from '@/features/auth/auth-context';
 import {
   applyExtraction,
+  applyExtractionToExisting,
+  getAudioUrl,
   getExtraction,
+  getExtractionAudioPath,
   getExtractionTranscript,
   type ExtractedTechnique,
   type ExtractionRaw,
 } from '@/features/ai/repository';
+import { listSessions, type SessionRow } from '@/features/sessions/repository';
 import {
   listDisciplines,
   syncDisciplines,
@@ -64,7 +69,14 @@ export default function Review() {
 
   const [raw, setRaw] = useState<ExtractionRaw | null>(null);
   const [transcript, setTranscript] = useState<string | null>(null);
-  const [showTranscript, setShowTranscript] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(true);
+  const [audioPath, setAudioPath] = useState<string | null>(null);
+  const [audioBusy, setAudioBusy] = useState(false);
+  const playerRef = useRef<AudioPlayer | null>(null);
+  // zapis: nowy trening albo dopisanie do istniejącego (głosówka po fakcie)
+  const [mode, setMode] = useState<'new' | 'existing'>('new');
+  const [recentSessions, setRecentSessions] = useState<SessionRow[]>([]);
+  const [targetSessionId, setTargetSessionId] = useState<string | null>(null);
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [disciplineId, setDisciplineId] = useState<string | null>(null);
   const [sessionType, setSessionType] = useState('');
@@ -87,8 +99,14 @@ export default function Review() {
       }
       const ds = await listDisciplines();
       setDisciplines(ds);
+      setRecentSessions((await listSessions()).slice(0, 8));
       if (id) {
         setTranscript(await getExtractionTranscript(id));
+        try {
+          setAudioPath(await getExtractionAudioPath(id));
+        } catch {
+          // brak audio (ścieżka tekstowa) / offline
+        }
         const ex = await getExtraction(id);
         if (ex) {
           setRaw(ex);
@@ -112,6 +130,29 @@ export default function Review() {
       setDisciplineId((c) => c ?? ds[0]?.id ?? null);
     })();
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      playerRef.current?.remove();
+    };
+  }, []);
+
+  async function playAudio() {
+    if (!audioPath) return;
+    setAudioBusy(true);
+    try {
+      const url = await getAudioUrl(audioPath);
+      await setAudioModeAsync({ playsInSilentMode: true });
+      playerRef.current?.remove();
+      const player = createAudioPlayer({ uri: url });
+      playerRef.current = player;
+      player.play();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAudioBusy(false);
+    }
+  }
 
   const setOutcome = (i: number, o: TechniqueOutcome) =>
     setTechs((prev) =>
@@ -144,12 +185,20 @@ export default function Review() {
       setError('Brak zalogowanego użytkownika.');
       return;
     }
-    if (!disciplineId) {
+    const targetSession =
+      mode === 'existing' ? (recentSessions.find((s) => s.id === targetSessionId) ?? null) : null;
+    if (mode === 'existing' && !targetSession) {
+      setError('Wybierz trening, do którego dopisać notatkę.');
+      return;
+    }
+    if (mode === 'new' && !disciplineId) {
       setError('Wybierz dyscyplinę.');
       return;
     }
+    const effectiveDisciplineId = targetSession?.discipline_id ?? disciplineId!;
+
     const input: TrainingSessionInput = {
-      disciplineId,
+      disciplineId: effectiveDisciplineId,
       occurredAt: nowIso(),
       sessionType: sessionType.trim() || null,
       durationMin: numOrNull(duration),
@@ -160,7 +209,7 @@ export default function Review() {
       wentBad: null,
     };
     const parsed = trainingSessionInputSchema.safeParse(input);
-    if (!parsed.success) {
+    if (mode === 'new' && !parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Błędne dane formularza.');
       return;
     }
@@ -174,7 +223,7 @@ export default function Review() {
         if (x.include && !x.technique_id && x.createNew) {
           try {
             const created = await createCustomTechnique(userId, {
-              disciplineId,
+              disciplineId: effectiveDisciplineId,
               namePl: capitalize(x.raw_text),
               nameEn: x.name_en ?? capitalize(x.raw_text),
               category: x.category ?? 'inne',
@@ -212,7 +261,24 @@ export default function Review() {
             .join(' · ') || null,
       }));
 
-      await applyExtraction(userId, id ?? '', parsed.data, techDrafts, sparDrafts);
+      if (targetSession) {
+        await applyExtractionToExisting(
+          userId,
+          id ?? '',
+          targetSession.id,
+          techDrafts,
+          sparDrafts,
+          composeNotes(),
+        );
+      } else {
+        await applyExtraction(
+          userId,
+          id ?? '',
+          parsed.success ? parsed.data : input,
+          techDrafts,
+          sparDrafts,
+        );
+      }
 
       // zaznaczone propozycje celów → cele treningowe
       for (let i = 0; i < goalSuggestions.length; i++) {
@@ -225,7 +291,7 @@ export default function Review() {
         }
       }
 
-      router.replace('/');
+      router.replace(targetSession ? `/session/${targetSession.id}` : '/');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -259,53 +325,99 @@ export default function Review() {
             </Card>
           )}
 
-          {transcript ? (
+          {transcript || audioPath ? (
             <Card>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Muted>Twoja notatka</Muted>
-                <P
-                  onPress={() => setShowTranscript((v) => !v)}
-                  style={{ color: t.primary, fontFamily: fonts.bodySemi, fontSize: 13 }}
-                >
-                  {showTranscript ? 'zwiń' : 'pokaż'}
-                </P>
+                {transcript ? (
+                  <P
+                    onPress={() => setShowTranscript((v) => !v)}
+                    style={{ color: t.primary, fontFamily: fonts.bodySemi, fontSize: 13 }}
+                  >
+                    {showTranscript ? 'zwiń' : 'pokaż'}
+                  </P>
+                ) : null}
               </View>
-              {showTranscript && <P>{transcript}</P>}
+              {showTranscript && transcript ? <P>{transcript}</P> : null}
+              {audioPath ? (
+                <View style={{ alignSelf: 'flex-start' }}>
+                  <Button
+                    title="▶ Odtwórz nagranie"
+                    variant="ghost"
+                    onPress={() => void playAudio()}
+                    loading={audioBusy}
+                  />
+                </View>
+              ) : null}
             </Card>
           ) : null}
 
-          <View style={{ gap: 8 }}>
-            <Muted>Dyscyplina</Muted>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {disciplines.map((d) => (
+          {recentSessions.length > 0 && (
+            <View style={{ gap: 8 }}>
+              <Muted>Zapis</Muted>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 <Chip
-                  key={d.id}
-                  label={d.name_pl}
-                  selected={d.id === disciplineId}
-                  onPress={() => setDisciplineId(d.id)}
+                  label="Nowy trening"
+                  selected={mode === 'new'}
+                  onPress={() => setMode('new')}
                 />
-              ))}
+                <Chip
+                  label="Dopisz do istniejącego"
+                  selected={mode === 'existing'}
+                  onPress={() => setMode('existing')}
+                />
+              </View>
+              {mode === 'existing' && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {recentSessions.map((s) => (
+                    <Chip
+                      key={s.id}
+                      label={`${sessionLabel(s, disciplines)}`}
+                      selected={s.id === targetSessionId}
+                      onPress={() => setTargetSessionId(s.id)}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
-          </View>
-          <TextField label="Typ treningu" value={sessionType} onChangeText={setSessionType} />
-          <TextField
-            label="Czas (min)"
-            value={duration}
-            onChangeText={setDuration}
-            keyboardType="number-pad"
-          />
-          <TextField
-            label="Intensywność (1–10)"
-            value={intensity}
-            onChangeText={setIntensity}
-            keyboardType="number-pad"
-          />
-          <TextField
-            label="Samopoczucie (1–5)"
-            value={feeling}
-            onChangeText={setFeeling}
-            keyboardType="number-pad"
-          />
+          )}
+
+          {mode === 'new' && (
+            <>
+              <View style={{ gap: 8 }}>
+                <Muted>Dyscyplina</Muted>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {disciplines.map((d) => (
+                    <Chip
+                      key={d.id}
+                      label={d.name_pl}
+                      selected={d.id === disciplineId}
+                      onPress={() => setDisciplineId(d.id)}
+                    />
+                  ))}
+                </View>
+              </View>
+              <TextField label="Typ treningu" value={sessionType} onChangeText={setSessionType} />
+              <TextField
+                label="Czas (min)"
+                value={duration}
+                onChangeText={setDuration}
+                keyboardType="number-pad"
+              />
+              <TextField
+                label="Intensywność (1–10)"
+                value={intensity}
+                onChangeText={setIntensity}
+                keyboardType="number-pad"
+              />
+              <TextField
+                label="Samopoczucie (1–5)"
+                value={feeling}
+                onChangeText={setFeeling}
+                keyboardType="number-pad"
+              />
+            </>
+          )}
 
           <H2>Techniki ({techs.filter((x) => x.include).length})</H2>
           {techs.length === 0 && (
@@ -429,7 +541,11 @@ export default function Review() {
           )}
 
           {error && <Banner tone="error">{error}</Banner>}
-          <Button title="Zapisz trening" onPress={onSave} loading={saving} />
+          <Button
+            title={mode === 'existing' ? 'Dopisz do treningu' : 'Zapisz trening'}
+            onPress={onSave}
+            loading={saving}
+          />
         </>
       )}
     </Screen>
@@ -446,4 +562,13 @@ function numOrNull(v: string): number | null {
 function capitalize(s: string): string {
   const t = s.trim();
   return t.length > 0 ? t[0].toUpperCase() + t.slice(1) : t;
+}
+
+function sessionLabel(s: SessionRow, disciplines: Discipline[]): string {
+  const d = disciplines.find((x) => x.id === s.discipline_id);
+  const date = new Date(s.occurred_at).toLocaleDateString('pl-PL', {
+    day: '2-digit',
+    month: 'short',
+  });
+  return [date, d?.name_pl ?? null, s.session_type].filter(Boolean).join(' · ');
 }

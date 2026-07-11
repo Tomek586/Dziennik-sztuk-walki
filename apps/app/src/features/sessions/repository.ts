@@ -104,6 +104,28 @@ export async function createSession(
   return row;
 }
 
+/** Dodaje techniki do istniejącego treningu (np. z doczepionej głosówki). */
+export async function addTechniquesToSession(
+  userId: string,
+  sessionId: string,
+  drafts: readonly SessionTechniqueDraft[],
+): Promise<void> {
+  const ts = nowIso();
+  for (const draft of drafts) {
+    await addSessionTechnique(userId, sessionId, draft, ts);
+  }
+}
+
+/** Dopisuje tekst do notatek istniejącego treningu (lokalnie + outbox). */
+export async function appendSessionNotes(sessionId: string, text: string): Promise<void> {
+  const existing = await collection.getById<SessionRow>(TABLE, sessionId);
+  if (!existing) return;
+  const ts = nowIso();
+  const notes = existing.notes ? `${existing.notes}\n\n${text}` : text;
+  await collection.upsertOne(TABLE, { ...existing, notes, updated_at: ts });
+  await enqueue(TABLE, 'update', sessionId, { notes });
+}
+
 async function addSessionTechnique(
   userId: string,
   sessionId: string,

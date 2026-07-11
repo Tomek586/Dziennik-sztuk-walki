@@ -18,7 +18,7 @@ import {
   type LocalVoiceNote,
 } from '@/features/voice/repository';
 import { useAuth } from '@/features/auth/auth-context';
-import { runExtract, uploadAndTranscribe } from '@/features/ai/repository';
+import { uploadAndTranscribe } from '@/features/ai/repository';
 import { ENV } from '@/lib/env';
 
 function fmtDuration(ms: number): string {
@@ -111,8 +111,8 @@ export default function RecordScreen() {
         note.uri,
         Math.round(note.durationMs / 1000),
       );
-      const { extractionId } = await runExtract({ voiceNoteId, transcript });
-      router.push({ pathname: '/review', params: { id: extractionId } });
+      // najpierw pokaż transkrypcję do sprawdzenia/poprawy — dopiero potem analiza
+      router.push({ pathname: '/analyze', params: { voiceNoteId, text: transcript } });
     } catch (e) {
       setProcError(e instanceof Error ? e.message : String(e));
     } finally {
