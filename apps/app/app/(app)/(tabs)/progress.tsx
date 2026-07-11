@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { MASTERY_LABELS_PL, type MasteryLevel } from '@dsw/core';
 import { Card, H1, H2, LinkRow, Muted, P, Screen, StatCard } from '@/components/ui';
 import { CountUp, PressableScale, ProgressBar, Rise } from '@/components/animated';
+import { BarTrend, TrainingHeatmap } from '@/components/charts';
 import { useTheme, fonts, spacing } from '@/theme';
 import { deriveProgress, type TechniqueProgress } from '@/features/progress/derive';
 import { listTechniques, type Technique } from '@/features/techniques/repository';
@@ -20,6 +21,8 @@ export default function Progress() {
   const [spar, setSpar] = useState({ tapsFor: 0, tapsAgainst: 0 });
   const [weight, setWeight] = useState<number | null>(null);
   const [activeGoals, setActiveGoals] = useState(0);
+  const [sessionDates, setSessionDates] = useState<string[]>([]);
+  const [weightTrend, setWeightTrend] = useState<{ label: string; value: number }[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -60,6 +63,22 @@ export default function Progress() {
 
         setWeight(metrics[0]?.weight_kg ?? null);
         setActiveGoals(goals.filter((g) => g.status === 'active').length);
+
+        setSessionDates(sessions.map((s) => s.occurred_at));
+        // trend wagi: rosnąco po dacie, ostatnie 12 pomiarów z wagą
+        setWeightTrend(
+          metrics
+            .filter((m) => m.weight_kg != null)
+            .sort((a, b) => (a.measured_at < b.measured_at ? -1 : 1))
+            .slice(-12)
+            .map((m) => ({
+              label: new Date(m.measured_at).toLocaleDateString('pl-PL', {
+                day: '2-digit',
+                month: 'short',
+              }),
+              value: m.weight_kg as number,
+            })),
+        );
       })();
     }, []),
   );
@@ -85,6 +104,14 @@ export default function Progress() {
             <CountUp value={totalTracked} />
           </StatCard>
         </View>
+      </Rise>
+
+      <Rise delay={90}>
+        <Card>
+          <H2>Aktywność</H2>
+          <Muted>Ostatnie 15 tygodni</Muted>
+          <TrainingHeatmap dates={sessionDates} />
+        </Card>
       </Rise>
 
       <Rise delay={120}>
@@ -161,6 +188,15 @@ export default function Progress() {
           </StatCard>
         </View>
       </Rise>
+
+      {weightTrend.length >= 2 && (
+        <Rise delay={270}>
+          <Card>
+            <H2>Trend wagi</H2>
+            <BarTrend points={weightTrend} suffix=" kg" />
+          </Card>
+        </Rise>
+      )}
 
       <Rise delay={300}>
         <Card>
